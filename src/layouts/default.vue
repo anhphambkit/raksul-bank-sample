@@ -10,8 +10,9 @@ import UDashboardPanel from '@nuxt/ui/components/DashboardPanel.vue'
 import UDashboardSidebar from '@nuxt/ui/components/DashboardSidebar.vue'
 import UNavigationMenu from '@nuxt/ui/components/NavigationMenu.vue'
 
+import { useBankingContext } from '@/data/api/bankingContext'
 
-const mocksEnabled = true
+const { mocksEnabled } = useBankingContext()
 const route = useRoute()
 const sidebarOpen = ref(false)
 const mainContent = ref<HTMLElement>()
