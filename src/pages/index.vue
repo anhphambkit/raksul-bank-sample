@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import PagePlaceholder from '@/shared/components/PagePlaceholder.vue'
 definePageMeta({ title: 'Overview' })
 </script>
 <template>
-  <main class="p-6"><h1>Raksul-bank</h1><p>Application foundation is ready.</p></main>
+  <PagePlaceholder title="Overview" description="Your personal banking dashboard." icon="i-lucide-layout-dashboard" section-title="Overview" message="This feature is not available yet." />
 </template>
