@@ -128,6 +128,8 @@ describe('transfer details → review → confirmation → receipt', () => {
     expect(wrapper.text()).not.toContain('Transfer complete')
     expect(button(wrapper, 'Back').attributes('disabled')).toBeUndefined()
     expect(await repository.load()).toEqual(before)
+    await button(wrapper, 'Back').trigger('click')
+    expect(wrapper.text()).toContain('$0.05')
   })
   it('blocks repeat clicks and navigation during submission', async () => {
     const { wrapper, router } = await page()

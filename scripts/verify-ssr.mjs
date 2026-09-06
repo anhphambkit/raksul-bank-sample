@@ -1,13 +1,19 @@
 import process from 'node:process'
+import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 
 const requests = []
-const backend = createServer((req, res) => {
+const backend = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://fixture')
+  const chunks = []
+  for await (const chunk of req) chunks.push(chunk)
+  const body = Buffer.concat(chunks).toString()
   requests.push({
+    method: req.method,
+    body,
     path: url.pathname,
     query: url.search,
     cookie: req.headers.cookie,
@@ -35,7 +41,49 @@ const backend = createServer((req, res) => {
     createdAt: '2026-01-01T00:00:00.000Z',
   }
   if (url.pathname === '/bank/v1/accounts') res.end(JSON.stringify([account]))
-  else if (url.pathname === '/bank/v1/transactions')
+  else if (url.pathname === '/bank/v1/beneficiaries')
+    res.end(
+      JSON.stringify([
+        {
+          id: 'beneficiary-1',
+          customerId: owner,
+          displayName: `${owner} recipient`,
+          bankName: 'Fixture Bank',
+          accountNumber: '9876543210',
+          currency: 'USD',
+        },
+      ]),
+    )
+  else if (url.pathname === '/bank/v1/transfers' && req.method === 'POST') {
+    const transfer = JSON.parse(body)
+    if (transfer.amountMinor === 999999) {
+      res.writeHead(422)
+      res.end(
+        JSON.stringify({ error: { code: 'INSUFFICIENT_FUNDS', message: 'Insufficient funds.' } }),
+      )
+      return
+    }
+    res.end(
+      JSON.stringify({
+        id: 'transfer-fixture',
+        sourceAccountId: transfer.sourceAccountId,
+        destination: {
+          kind: 'EXTERNAL_ACCOUNT',
+          recipientSnapshot: {
+            name: `${owner} recipient`,
+            bankName: 'Fixture Bank',
+            accountNumber: '9876543210',
+          },
+        },
+        amountMinor: transfer.amountMinor,
+        currency: transfer.currency,
+        reference: transfer.reference,
+        status: 'COMPLETED',
+        createdAt: '2026-09-06T10:00:00.000Z',
+        completedAt: '2026-09-06T10:00:00.000Z',
+      }),
+    )
+  } else if (url.pathname === '/bank/v1/transactions')
     res.end(
       JSON.stringify({
         data: [
@@ -125,6 +173,50 @@ try {
   assert.ok(
     requests.some((r) => r.cookie === 'customer=b' && r.authorization === 'Bearer fixture-token'),
   )
+  const beforeForm = requests.filter((r) => r.method === 'POST').length
+  const transferHtml = rendered(await read('/transfer'))
+  assert.match(transferHtml, /From account/)
+  assert.match(transferHtml, /Review transfer/)
+  assert.doesNotMatch(transferHtml, /Unable to load transfer details/)
+  assert.equal(requests.filter((r) => r.method === 'POST').length, beforeForm)
+  assert.ok(requests.some((r) => r.path.endsWith('/beneficiaries') && r.cookie === 'customer=a'))
+  const transferBody = JSON.stringify({
+    idempotencyKey: 'fixture-key',
+    sourceAccountId: 'account-1',
+    destination: { kind: 'BENEFICIARY', beneficiaryId: 'beneficiary-1' },
+    amountMinor: 29,
+    currency: 'USD',
+    reference: 'Exact cents',
+  })
+  const postHeaders = {
+    'Content-Type': 'application/json',
+    cookie: 'customer=b',
+    authorization: 'Bearer fixture-token',
+  }
+  const transferred = await fetch(real.url + '/api/transfers', {
+    method: 'POST',
+    headers: postHeaders,
+    body: transferBody,
+  })
+  assert.equal(transferred.status, 200)
+  assert.equal((await transferred.json()).amountMinor, 29)
+  assert.match(transferred.headers.get('cache-control'), /private, no-store/)
+  const posts = requests.filter((r) => r.method === 'POST' && r.path.endsWith('/transfers'))
+  assert.equal(posts.length, 1)
+  assert.equal(posts[0].body, transferBody)
+  assert.equal(posts[0].cookie, 'customer=b')
+  assert.equal(posts[0].authorization, 'Bearer fixture-token')
+  const rejected = await fetch(real.url + '/api/transfers', {
+    method: 'POST',
+    headers: postHeaders,
+    body: transferBody.replace('"amountMinor":29', '"amountMinor":999999'),
+  })
+  assert.equal(rejected.status, 422)
+  assert.equal((await rejected.json()).error.code, 'INSUFFICIENT_FUNDS')
+  assert.equal(
+    requests.filter((r) => r.method === 'POST' && r.path.endsWith('/transfers')).length,
+    2,
+  )
   const beforeInvalid = requests.filter((r) => r.path.endsWith('/transactions')).length
   assert.match(await read('/transactions?page=invalid'), /Check the filters in this link/)
   assert.equal(requests.filter((r) => r.path.endsWith('/transactions')).length, beforeInvalid)
@@ -143,6 +235,17 @@ try {
   const html = await (await fetch(demo.url + '/accounts')).text()
   assert.match(html, /Loading accounts/)
   assert.match(html, /Reset demo data/)
+  assert.match(await (await fetch(demo.url + '/transfer')).text(), /Loading transfer details/)
+  assert.equal(
+    (
+      await fetch(demo.url + '/api/transfers', {
+        method: 'POST',
+        headers: postHeaders,
+        body: transferBody,
+      })
+    ).status,
+    503,
+  )
   assert.equal((await fetch(demo.url + '/api/accounts')).status, 503)
   assert.equal((await fetch(demo.url + '/mockServiceWorker.js')).status, 200)
   const missing = await start({ NUXT_PUBLIC_ENABLE_MOCKS: 'false', NUXT_API_BASE_URL: '' })
@@ -150,7 +253,7 @@ try {
   assert.equal(unavailable.status, 503)
   assert.equal((await unavailable.json()).error.code, 'API_NOT_CONFIGURED')
   console.log(
-    'SSR smoke passed: rendered data, request isolation, cookies/auth, filtered URLs, errors, 404, private cache, demo and missing-backend modes.',
+    'SSR smoke passed: rendered data, request isolation, cookies/auth, filtered URLs, transfer form and POST forwarding, errors, 404, private cache, demo and missing-backend modes.',
   )
   if (process.argv.includes('--serve')) {
     console.log(`Browser verification: backend ${real.url}, demo ${demo.url}`)

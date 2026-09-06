@@ -4,7 +4,7 @@ Revision: 2026-09-06, requested by the user. This document supersedes the previo
 
 ## Current architecture
 
-The application runs Nuxt 4 with `ssr: true`, Vue 3, Vue Router 5, Nitro, Nuxt UI 4, Tailwind 4 and TanStack Vue Query. Domain rules, use cases, seed data and atomic IndexedDB persistence retain their existing contracts. There is no implemented production banking backend or transfer execution.
+The application runs Nuxt 4 with `ssr: true`, Vue 3, Vue Router 5, Nitro, Nuxt UI 4, Tailwind 4 and TanStack Vue Query. Domain rules, use cases, seed data and atomic IndexedDB persistence retain their existing contracts. There is no implemented production banking backend. Demo transfer execution and details/review/receipt are now implemented.
 
 | Before                                          | Current                                                                                    |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -43,11 +43,11 @@ NUXT_API_BASE_URL=https://your-backend.example/api
 
 The upstream root is private runtime config. The browser always calls same-origin `/api/*`; the Nitro handler maps that suffix and query string to the configured root. Server requests use Nuxt's `useRequestFetch` to preserve the current request context. The proxy forwards incoming cookies/authorization to the configured backend. It does not invent identity, obtain tokens, implement authorization or share credentials between requests.
 
-`useAccounts`, `useTransactions` and recent activity prefetch with `onServerPrefetch` in backend mode. The query plugin dehydrates completed success/error state into Nuxt's payload and hydrates it before the first client render. `ApiError` has a payload reducer/reviver; network failures normalize to that type. Reads have a 30-second stale time; SSR does not retry, the browser retries reads once, and mutations never auto-retry. Failed initial queries remain available for explicit retry instead of changing hydration output through an immediate mount retry.
+`useAccounts`, `useBeneficiaries`, `useTransactions` and recent activity prefetch with `onServerPrefetch` in backend mode. The query plugin dehydrates completed success/error state into Nuxt's payload and hydrates it before the first client render. `ApiError` has a payload reducer/reviver; network failures normalize to that type. Reads have a 30-second stale time; SSR does not retry, the browser retries reads once, and mutations never auto-retry. Failed initial queries remain available for explicit retry instead of changing hydration output through an immediate mount retry.
 
 The server QueryClient is created inside the plugin, serialized after rendering and cleared. Page/API responses have `Cache-Control: private, no-store`; do not introduce shared response caches for authenticated banking data. The reset UI is hidden and `/api/demo/*` returns 404 in backend mode. Missing backend configuration returns a structured 503. Unknown page routes return actual HTTP 404 responses.
 
-Keep backend response shapes compatible with `src/contracts/transactions.ts`, `src/contracts/pagination.ts` and the domain models referenced by `src/contracts/banking.ts` and the endpoint/query tables in README. Success payloads remain trusted typed contracts; introduce runtime response validation when integrating an uncontrolled API. Customer ownership, permissions and transactional consistency must be enforced by the backend. Implement session login/refresh/logout and clear the banking query cache on identity changes when authentication is added. If backend SSR reads refresh cookies, explicitly propagate those cookies to the page response; the current bridge does not implement that session lifecycle. Financial mutation endpoints will also need the backend's CSRF/idempotency contract.
+Keep backend response shapes compatible with `src/contracts/transactions.ts`, `src/contracts/pagination.ts` and the domain models referenced by `src/contracts/banking.ts` and the endpoint/query tables in README. Success payloads remain trusted typed contracts; introduce runtime response validation when integrating an uncontrolled API. Customer ownership, permissions and transactional consistency must be enforced by the backend. Implement session login/refresh/logout and clear the banking query cache on identity changes when authentication is added. If backend SSR reads refresh cookies, explicitly propagate those cookies to the page response; the current bridge does not implement that session lifecycle. Transfer POST requests forward JSON bodies and their idempotency keys without automatic retries. A real backend must implement the documented request/receipt/error contract, server-side CSRF controls and idempotency.
 
 ## Commands and deployment
 
@@ -92,7 +92,7 @@ Verification for this refactor: typecheck, lint, 153 unit/component tests, produ
 
 ## Next work
 
-Continue the requested product step only when asked: transfer use case, HTTP endpoints and details/review/receipt UI are still pending. For new queries, use the injected banking context, honor readiness, add SSR prefetch, and avoid module-scoped user data. Real backend/auth integration remains a separate implementation task.
+The transfer use case, HTTP endpoints and details/review/receipt UI are complete. Transfer request and receipt types live in `src/contracts/transfers.ts`. The SSR smoke suite also checks the transfer form, recipient prefetch, authenticated JSON POST forwarding, exact cents, rejection status and lack of automatic mutation retries. For new queries, use the injected banking context, honor readiness, add SSR prefetch, and avoid module-scoped user data. Real backend/auth integration remains a separate implementation task.
 
 README and this migration document are versioned. The master handoff, earlier execution guides and recovered conversation notes remain ignored under the existing local documentation policy, and have also been updated locally.
 

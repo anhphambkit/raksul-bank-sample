@@ -9,9 +9,10 @@ A personal banking dashboard built with Nuxt 4, Vue 3 and TypeScript. It uses a 
 - Responsive navigation, keyboard focus management, loading/error/retry/empty states and confirmed demo reset.
 - Typed API client and MSW handlers for customer, accounts, transaction queries, beneficiaries and reset.
 - Deterministic seed data, validated persistence and atomic repository updates.
-- Exact integer-cent arithmetic and pure transfer validation.
+- Exact integer-cent arithmetic, atomic transfer execution and persistent idempotency.
+- Transfer details, masked review, explicit confirmation and completion receipt for own accounts and saved beneficiaries.
 
-Transfer execution is not implemented yet. Its route currently displays a placeholder.
+Transfers are simulated and complete in one request after IndexedDB commits. No real funds move.
 
 ## Deliberately Left Out
 
@@ -103,14 +104,14 @@ Shared query/response shapes live in `src/contracts/transactions.ts`; pagination
 
 The seed contains one fictional customer, three owned accounts (active checking, active savings and frozen checking), two hidden internal recipient accounts, six beneficiaries, 100 transactions across March–August 2026 and six completed own-account transfers.
 
-| Entity              | Main fields and relationships                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Customer            | ID and names; owns accounts and beneficiaries.                                                                                              |
-| Account             | ID, owner, display name, type, account number, USD currency, balance in cents, active/frozen status and creation timestamp.                 |
-| Transaction         | ID, account ID, optional transfer ID, direction, type, positive amount in cents, currency, status, description, counterparty and timestamp. |
-| Beneficiary         | ID, customer ID, name, bank, account number, currency and optional internal account ID.                                                     |
-| TransferDestination | An owned account, an internal recipient account with a recipient snapshot, or an external recipient snapshot.                               |
-| Transfer            | ID, idempotency key, request hash, source, destination, amount, currency, reference, status and timestamps. Execution is pending.           |
+| Entity              | Main fields and relationships                                                                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Customer            | ID and names; owns accounts and beneficiaries.                                                                                                                                            |
+| Account             | ID, owner, display name, type, account number, USD currency, balance in cents, active/frozen status and creation timestamp.                                                               |
+| Transaction         | ID, account ID, optional transfer ID, direction, type, positive amount in cents, currency, status, description, counterparty and timestamp.                                               |
+| Beneficiary         | ID, customer ID, name, bank, account number, currency and optional internal account ID.                                                                                                   |
+| TransferDestination | An owned account, an internal recipient account with a recipient snapshot, or an external recipient snapshot.                                                                             |
+| Transfer            | ID, idempotency key, request hash, source, destination, amount, currency, reference, status and timestamps. Completed transfers retain the request fingerprint and recipient destination. |
 
 Money uses safe integer minor units: `$10.50` is `1050` cents. Transaction direction supplies the debit/credit sign. Aggregate balances use BigInt, and formatting preserves exact cents. Account numbers are masked in the visible UI.
 
@@ -118,14 +119,16 @@ Seed balances reconcile to fixed opening balances plus completed activity. Pendi
 
 ## Mock API
 
-| Method | Endpoint                   | Response                                            |
-| ------ | -------------------------- | --------------------------------------------------- |
-| GET    | `/api/customer`            | Current customer.                                   |
-| GET    | `/api/accounts`            | Customer-owned accounts, including frozen accounts. |
-| GET    | `/api/accounts/:accountId` | Owned account or 404.                               |
-| GET    | `/api/transactions`        | Filtered activity and pagination.                   |
-| GET    | `/api/beneficiaries`       | Current customer's beneficiaries.                   |
-| POST   | `/api/demo/reset`          | 204 after restoring the seed.                       |
+| Method | Endpoint                     | Response                                            |
+| ------ | ---------------------------- | --------------------------------------------------- |
+| GET    | `/api/customer`              | Current customer.                                   |
+| GET    | `/api/accounts`              | Customer-owned accounts, including frozen accounts. |
+| GET    | `/api/accounts/:accountId`   | Owned account or 404.                               |
+| GET    | `/api/transactions`          | Filtered activity and pagination.                   |
+| GET    | `/api/beneficiaries`         | Current customer's beneficiaries.                   |
+| POST   | `/api/transfers`             | Completed receipt; requires an idempotency key.     |
+| GET    | `/api/transfers/:transferId` | Customer-scoped completed receipt or 404.           |
+| POST   | `/api/demo/reset`            | 204 after restoring the seed.                       |
 
 Transaction queries accept `accountId`, `query`, `direction`, `type`, `status`, `dateFrom`, `dateTo`, `page` and `pageSize`. Dates are inclusive UTC calendar dates. Results are scoped before filtering/counting and sorted newest first. Pagination defaults to 20 entries; the maximum page size is 100.
 
@@ -151,9 +154,15 @@ TanStack Vue Query manages API state with a 30-second stale time, one query retr
 
 ## Transfer Semantics
 
-Pure validation currently checks positive safe amounts, source ownership and usability, sufficient funds, destination identity and usability, same-account rejection, currency compatibility, recipient fields and balance overflow. It does not mutate state.
+Open **Transfer**, choose an active source, then **My accounts** or **Someone else**. Select a destination or saved beneficiary, enter a plain USD decimal amount and an optional reference (up to 140 characters), then select **Review transfer**. Review displays masked account numbers, recipient/bank, balance, currency, amount and reference. Only **Confirm transfer** submits a payment. The receipt shows the committed transfer ID and UTC completion time, with links to activity and accounts.
 
-Planned execution: own-account and internal transfers debit the source, credit the destination and create linked debit/credit activity. External transfers debit the source and create one source transaction. Validation failures must leave state unchanged; matching idempotent requests must return the previous result. Transfer orchestration, HTTP endpoints and the form/review/result workflow are not implemented yet.
+Own-account and saved internal-recipient transfers debit the source, credit the destination and create linked debit/credit activity. External recipients receive a stored recipient snapshot and one source debit; there is no external balance or real settlement. Hidden recipient accounts never appear in customer account/activity queries.
+
+`executeTransfer` prepares a SHA-256 fingerprint of the normalized request, then resolves the source and recipient, checks idempotency, validates balances and applies all changes inside one synchronous repository update callback. It returns only after the IndexedDB transaction commits. Failed validation or persistence leaves the entire previous state intact. Concurrent requests use the latest committed balance. The same key and payload return the earlier result; changing the payload with a used key returns a conflict. Reset clears transfers and their idempotency records along with the rest of the demo.
+
+`POST /api/transfers` accepts `idempotencyKey`, `sourceAccountId`, `destination`, `amountMinor`, `currency: "USD"` and optional `reference`. Destination is `{ kind: "OWN_ACCOUNT", accountId }` or `{ kind: "BENEFICIARY", beneficiaryId }`; recipient snapshots are resolved by the use case. The key is a nonblank string of at most 128 characters. Requests reject unknown fields, unsafe/fractional minor units and unavailable accounts/recipients. Responses omit the stored key and fingerprint. Invalid payloads return 400, domain validation 422, key conflicts 409, missing receipts 404 and storage failures 503.
+
+The mutation never automatically retries. Confirmation is guarded against double clicks, and successful completion invalidates account/activity caches. A definite validation rejection explains that no money moved and refreshes the available balance. Network, storage or ambiguous errors do not claim failure or success: review retains the exact request/key for an explicit safe retry, blocks in-app navigation and warns before unloading. Keep that page open until the outcome is resolved. Drafts and retry keys are held in memory; forcibly closing/reloading discards them. Committed balances/activity persist across reloads, and receipts remain retrievable through the API. A production integration needs durable pending-request recovery and backend-enforced idempotency/authorization.
 
 ## Testing
 
@@ -161,11 +170,11 @@ The unit/component suite covers domain, data/API, runtime configuration and UI b
 
 Coverage includes exact money conversion and bounds, transfer validation, masking, deterministic seed reconciliation, ownership scoping, query validation/filtering, persistence reload/reset, corruption recovery, rollback, concurrent updates, API errors, and UI loading/error/retry/empty/reset states. Transaction tests also cover combined filters through HTTP, URL restoration, Back/Forward, pagination, invalid dates/URLs, empty results, retry and stale-response isolation. Isolated component tests render real Nuxt UI components with Vue Router, Vue Query and MSW, using a small Nuxt routing/metadata adapter. The separate SSR check runs the built Nuxt/Nitro application.
 
-Manual browser checks cover desktop/tablet/mobile layouts, navigation, reset, native IndexedDB/API integration and large-balance wrapping. End-to-end transfer execution has not been tested because it is not implemented.
+Manual browser checks cover desktop/tablet/mobile layouts, navigation, reset, native IndexedDB/API integration and large-balance wrapping. Transfer integration tests exercise the real form, HTTP handlers and IndexedDB adapter (fake-indexeddb), including lost-response replay and concurrent balance checks. Native browser verification covers successful transfers, persisted balances/activity and reset.
 
 ## Known Limitations
 
-Transfer execution remains incomplete. Architecture decision records are not yet written. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
+Architecture decision records are not yet written. The transfer form supports saved beneficiaries; adding recipients and durable recovery of an interrupted draft are outside this demo. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
 
 ## Production Considerations
 
