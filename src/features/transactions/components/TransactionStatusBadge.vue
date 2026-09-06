@@ -2,31 +2,34 @@
 import { computed, type VNodeChild } from 'vue'
 import type { BadgeProps } from '@nuxt/ui'
 import UBadge from '@nuxt/ui/components/Badge.vue'
-import type { Account } from '@/domain/accounts/account'
+import type { Transaction } from '@/domain/transactions/transaction'
+
 const props = withDefaults(
-  defineProps<{ status: Account['status']; size?: BadgeProps['size']; showIcon?: boolean }>(),
+  defineProps<{ status: Transaction['status']; size?: BadgeProps['size']; showIcon?: boolean }>(),
   { size: 'md', showIcon: true },
 )
 const statuses = {
-  ACTIVE: {
-    label: 'Active',
+  COMPLETED: {
+    label: 'Completed',
     color: 'success',
-    icon: 'i-lucide-circle-check',
+    icon: 'i-lucide-check',
     class: 'bank-status--success',
   },
-  FROZEN: {
-    label: 'Frozen',
+  PENDING: {
+    label: 'Pending',
     color: 'warning',
-    icon: 'i-lucide-lock-keyhole',
+    icon: 'i-lucide-clock-3',
     class: 'bank-status--warning',
   },
+  FAILED: { label: 'Failed', color: 'error', icon: 'i-lucide-x', class: 'bank-status--error' },
 } as const
 const presentation = computed(() => statuses[props.status])
 defineSlots<{
-  default?(props: { status: Account['status']; label: string }): VNodeChild
-  leading?(props: { status: Account['status']; icon: string }): VNodeChild
+  default?(props: { status: Transaction['status']; label: string }): VNodeChild
+  leading?(props: { status: Transaction['status']; icon: string }): VNodeChild
 }>()
 </script>
+
 <template>
   <UBadge
     :color="presentation.color"

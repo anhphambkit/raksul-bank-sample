@@ -50,7 +50,10 @@ export default defineNuxtPlugin((nuxtApp) => {
         await worker.start({
           serviceWorker: { url: '/mockServiceWorker.js' },
           onUnhandledRequest(request, print) {
-            if (new URL(request.url).pathname.startsWith('/api/')) print.error()
+            const { pathname } = new URL(request.url)
+            // Nuxt may load new icons on demand during development; these are UI assets.
+            if (pathname.startsWith('/api/_nuxt_icon/')) return
+            if (pathname.startsWith('/api/')) print.error()
           },
         })
       } catch (error) {

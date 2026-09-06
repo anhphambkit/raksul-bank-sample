@@ -32,6 +32,7 @@ function retry() {
     <TransactionFilters
       :filters="filters"
       :accounts="accounts.data.value ?? []"
+      :busy="isFetching"
       @apply="applyFilters"
       @clear="clearFilters"
     />
@@ -47,7 +48,9 @@ function retry() {
     </div>
     <div v-else class="mt-6" :aria-busy="isFetching || accounts.isFetching.value">
       <DataState
-        :loading="isPending || isFetching || accounts.isPending.value"
+        :loading="isPending || accounts.isPending.value"
+        :refreshing="isFetching || accounts.isFetching.value"
+        skeleton="transactions"
         :error="accounts.isError.value ? accounts.error.value : isError ? error : null"
         :empty="false"
         label="transactions"
@@ -65,6 +68,7 @@ function retry() {
               color="neutral"
               variant="ghost"
               icon="i-lucide-refresh-cw"
+              :loading="isFetching"
               class="min-h-11"
               @click="refetch()"
               >Refresh</UButton

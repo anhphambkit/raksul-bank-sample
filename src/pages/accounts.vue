@@ -21,6 +21,8 @@ const { data: accounts, isPending, isFetching, isError, error, refetch } = useAc
     </div>
     <DataState
       :loading="isPending"
+      :refreshing="isFetching && !isPending"
+      skeleton="accounts"
       :error="isError ? error : null"
       :empty="!accounts?.length"
       label="accounts"

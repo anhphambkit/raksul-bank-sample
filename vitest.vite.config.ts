@@ -10,12 +10,24 @@ export default defineConfig({
       autoImport: false,
       components: false,
       colorMode: false,
-      ui: { colors: { primary: 'blue', neutral: 'slate' } },
+      ui: {
+        colors: {
+          primary: 'indigo',
+          neutral: 'slate',
+          success: 'emerald',
+          warning: 'amber',
+          error: 'rose',
+        },
+      },
       icon: { clientBundle: { scan: true } },
     }),
   ],
   resolve: {
     alias: {
+      // Use Nuxt UI's Vue icon adapter in the standalone Vite test environment.
+      '@nuxt/ui/components/Icon.vue': fileURLToPath(
+        new URL('./node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue', import.meta.url),
+      ),
       '#app': fileURLToPath(new URL('./src/tests/nuxtAppStub.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },

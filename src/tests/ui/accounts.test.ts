@@ -61,8 +61,11 @@ describe('Accounts and Overview', () => {
     )
     const wrapper = await page()
     expect(wrapper.get('[role="status"]').text()).toContain('Loading accounts')
+    expect(wrapper.get('[role="status"]').attributes('aria-busy')).toBe('true')
+    expect(wrapper.findAll('.bank-card-skeleton')).toHaveLength(3)
     await vi.waitFor(() => expect(wrapper.text()).toContain('Everyday Checking'))
     expect(wrapper.findAll('article')).toHaveLength(3)
+    expect(wrapper.get('article').text()).not.toContain('raksul-bank')
     expect(wrapper.text()).toContain('$30,776.05')
     expect(wrapper.text()).toContain('•••• 4821')
     for (const account of seed.accounts) expect(wrapper.html()).not.toContain(account.accountNumber)
@@ -77,6 +80,27 @@ describe('Accounts and Overview', () => {
     const wrapper = await page()
     await vi.waitFor(() => expect(wrapper.text()).toContain('No accounts yet'))
     expect(wrapper.text()).not.toContain('Total balance')
+  })
+
+  it('keeps accounts visible and disables Refresh while updating balances', async () => {
+    const wrapper = await page()
+    await vi.waitFor(() => expect(wrapper.findAll('article')).toHaveLength(3))
+    server.use(
+      http.get('*/api/accounts', async () => {
+        await delay(100)
+        return HttpResponse.json(accounts.map((account) => ({ ...account, balanceMinor: 100 })))
+      }),
+    )
+    const refresh = wrapper.findAll('button').find((button) => button.text() === 'Refresh')!
+    await refresh.trigger('click')
+    expect(wrapper.text()).toContain('Updating accounts')
+    expect(wrapper.findAll('article')).toHaveLength(3)
+    expect(wrapper.text()).toContain('$30,776.05')
+    expect(refresh.attributes()).toHaveProperty('disabled')
+    expect(wrapper.find('.bank-loading-skeleton').exists()).toBe(false)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('$3.00'))
+    expect(wrapper.text()).not.toContain('Updating accounts')
+    expect(refresh.attributes()).not.toHaveProperty('disabled')
   })
 
   it('shows an error and recovers when Try again succeeds', async () => {

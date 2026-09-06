@@ -7,7 +7,7 @@ import AccountSummary from '@/features/accounts/components/AccountSummary.vue'
 import ResetDemoButton from '@/features/demo/components/ResetDemoButton.vue'
 import RecentTransactions from '@/features/overview/components/RecentTransactions.vue'
 import DataState from '@/shared/components/DataState.vue'
-const { data: accounts, isPending, isError, error, refetch } = useAccounts()
+const { data: accounts, isPending, isFetching, isError, error, refetch } = useAccounts()
 </script>
 <template>
   <section aria-labelledby="overview-title" class="py-2 sm:py-3">
@@ -30,6 +30,8 @@ const { data: accounts, isPending, isError, error, refetch } = useAccounts()
     </div>
     <DataState
       :loading="isPending"
+      :refreshing="isFetching && !isPending"
+      skeleton="accounts"
       :error="isError ? error : null"
       :empty="!accounts?.length"
       label="accounts"

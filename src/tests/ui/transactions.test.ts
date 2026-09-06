@@ -108,6 +108,31 @@ describe('Transaction explorer', () => {
     expect(wrapper.get('tbody').text()).not.toContain('Jun')
   })
 
+  it('keeps current rows visible during refresh and shows skeletons for a new search', async () => {
+    const { wrapper, router } = await page()
+    await ready(wrapper)
+    server.use(
+      http.get('*/api/transactions', async () => {
+        await delay(120)
+        return HttpResponse.json({
+          data: [{ ...createSeedState().transactions[0], description: 'Updated transaction' }],
+          pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+        })
+      }),
+    )
+    await button(wrapper, 'Refresh').trigger('click')
+    expect(wrapper.text()).toContain('Updating transactions')
+    expect(wrapper.findAll('tbody tr')).toHaveLength(20)
+    expect(button(wrapper, 'Refresh').attributes()).toHaveProperty('disabled')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Updated transaction'))
+    expect(wrapper.text()).not.toContain('Updating transactions')
+    await router.push('/transactions?query=new-search')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Loading transactions'))
+    expect(wrapper.find('.bank-loading-skeleton').exists()).toBe(true)
+    expect(wrapper.find('tbody').exists()).toBe(false)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Updated transaction'))
+  })
+
   it('preserves URL state on remount and Back/Forward, resetting page when filters change', async () => {
     const { wrapper, router } = await page('/transactions?pageSize=10')
     await ready(wrapper)

@@ -91,7 +91,7 @@ watch(
         content: { onCloseAutoFocus: onMenuClose },
       }"
       :ui="{
-        root: 'bg-white',
+        root: 'bank-sidebar bg-white',
         header: 'px-5 gap-3',
         body: 'px-3 pt-6',
         footer: 'border-t border-default p-5',
@@ -107,7 +107,7 @@ watch(
         >
           <span
             aria-hidden="true"
-            class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-2xl leading-none font-semibold text-white"
+            class="flex size-9 shrink-0 items-center justify-center bank-brand-mark rounded-xl bg-primary text-2xl leading-none font-semibold text-white"
             >r.</span
           >
           <span class="text-lg font-semibold tracking-tight text-highlighted">raksul-bank</span>
@@ -123,7 +123,7 @@ watch(
         aria-label="Main navigation"
         :ui="{
           list: 'space-y-1.5',
-          link: 'min-h-12 px-3 gap-3 text-sm font-medium rounded-lg',
+          link: 'bank-nav-link min-h-12 px-3 gap-3 text-sm font-medium rounded-lg',
           linkLeadingIcon: 'size-5',
         }"
       />
@@ -175,7 +175,10 @@ watch(
             </nav>
           </template>
           <template #right>
-            <UBadge color="neutral" variant="subtle" class="rounded-full px-3 py-1 text-xs"
+            <UBadge
+              color="primary"
+              variant="soft"
+              class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700"
               >Preview</UBadge
             >
           </template>
