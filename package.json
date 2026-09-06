@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "test": "vitest",
     "start": "node .output/server/index.mjs",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test:ssr": "node scripts/verify-ssr.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "4.11.0",
