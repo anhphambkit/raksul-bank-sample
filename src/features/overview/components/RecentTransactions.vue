@@ -60,8 +60,8 @@ onServerPrefetch(async () => {
 })
 </script>
 <template>
-  <section :aria-labelledby="headingId" class="mt-8">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <section :aria-labelledby="headingId" class="mt-4">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <h2 :id="headingId" class="text-xl font-semibold text-highlighted">
         <slot name="header" :title="title">{{ title }}</slot>
       </h2>

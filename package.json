@@ -20,7 +20,10 @@
     "test": "vitest",
     "start": "node .output/server/index.mjs",
     "postinstall": "nuxt prepare",
-    "test:ssr": "node scripts/verify-ssr.mjs"
+    "test:ssr": "node scripts/verify-ssr.mjs",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:built": "playwright test",
+    "test:all": "npm run test -- --run && npm run build && npm run test:ssr && npm run test:e2e:built"
   },
   "dependencies": {
     "@nuxt/ui": "4.11.0",
@@ -36,6 +39,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@iconify-json/lucide": "1.2.129",
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.0.0",
     "@vitejs/plugin-vue": "6.0.8",
     "@vue/eslint-config-typescript": "14.9.0",

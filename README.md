@@ -166,6 +166,8 @@ The mutation never automatically retries. Confirmation is guarded against double
 
 ## Testing
 
+See [Testing strategy and SSR-only cases](docs/testing.md) for the automated Chromium suites, commands, and the checks that require an HTTP backend fixture instead of browser MSW.
+
 The unit/component suite covers domain, data/API, runtime configuration and UI behavior. Run `npm run test -- --run` for the current count; run `npm run build && npm run test:ssr` for production SSR integration checks.
 
 Coverage includes exact money conversion and bounds, transfer validation, masking, deterministic seed reconciliation, ownership scoping, query validation/filtering, persistence reload/reset, corruption recovery, rollback, concurrent updates, API errors, and UI loading/error/retry/empty/reset states. Transaction tests also cover combined filters through HTTP, URL restoration, Back/Forward, pagination, invalid dates/URLs, empty results, retry and stale-response isolation. Isolated component tests render real Nuxt UI components with Vue Router, Vue Query and MSW, using a small Nuxt routing/metadata adapter. The separate SSR check runs the built Nuxt/Nitro application.

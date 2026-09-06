@@ -12,13 +12,22 @@ export default defineNuxtPlugin((nuxtApp) => {
   const fetcher: BankingFetch = import.meta.server
     ? async (url, init) => {
         try {
+          let responseStatus: number | undefined
           const data = await requestFetch(url, {
             ...init,
             method: init.method as 'GET' | 'POST',
             retry: 0,
             timeout: 15_000,
+            onResponse({ response }) {
+              responseStatus = response.status
+            },
           })
-          return { ok: true, status: data === undefined ? 204 : 200, json: async () => data }
+          if (responseStatus === undefined) throw new Error('Banking response status is missing.')
+          return {
+            ok: responseStatus >= 200 && responseStatus < 300,
+            status: responseStatus,
+            json: async () => data,
+          }
         } catch (error) {
           if (
             error &&

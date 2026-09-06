@@ -15,6 +15,8 @@ export default defineConfigWithVueTs(
       '.nuxt/**',
       '.output/**',
       'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
       '.tools/**',
       'public/mockServiceWorker.js',
     ],

@@ -126,15 +126,13 @@ function clear() {
 <template>
   <form
     aria-label="Transaction filters"
-    class="bank-surface rounded-2xl border border-default bg-white p-4 sm:p-5"
+    class="bank-surface transaction-filters rounded-2xl border border-default bg-white p-3 sm:p-4"
     @submit.prevent="apply"
   >
-    <div class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      <div class="min-w-0 sm:col-span-2 xl:col-span-3">
+    <div class="filter-grid">
+      <div class="filter-search min-w-0">
         <slot name="search" v-bind="fieldScope">
-          <label
-            :for="`${idPrefix}-search`"
-            class="mb-1.5 block text-sm font-medium text-highlighted"
+          <label :for="`${idPrefix}-search`" class="mb-1 block text-xs font-medium text-highlighted"
             >Search transactions</label
           >
           <UInput
@@ -142,25 +140,25 @@ function clear() {
             v-model="draft.query"
             type="search"
             icon="i-lucide-search"
-            placeholder="Description, counterparty or transaction ID"
+            placeholder="Search description, name or ID"
             :maxlength="200"
-            size="lg"
+            size="md"
             class="w-full"
           />
         </slot>
       </div>
-      <div class="min-w-0 sm:col-span-2 xl:col-span-3">
+      <div class="filter-account min-w-0">
         <slot name="account" v-bind="fieldScope" :items="accountItems">
           <label
             :for="`${idPrefix}-account`"
-            class="mb-1.5 block text-sm font-medium text-highlighted"
+            class="mb-1 block text-xs font-medium text-highlighted"
             >Account</label
           >
           <USelect
             :id="`${idPrefix}-account`"
             :model-value="draft.accountId || 'ALL'"
             :items="accountItems"
-            size="lg"
+            size="md"
             class="w-full"
             @update:model-value="draft.accountId = $event === 'ALL' ? '' : $event"
           />
@@ -170,32 +168,32 @@ function clear() {
         <slot :name="filter.key" v-bind="fieldScope" :items="filter.items">
           <label
             :for="`${idPrefix}-${filter.key}`"
-            class="mb-1.5 block text-sm font-medium text-highlighted"
+            class="mb-1 block text-xs font-medium text-highlighted"
             >{{ filter.label }}</label
           >
           <USelect
             :id="`${idPrefix}-${filter.key}`"
             :model-value="draft[filter.key] || 'ALL'"
             :items="[...filter.items]"
-            size="lg"
+            size="md"
             class="w-full"
             @update:model-value="draft[filter.key] = $event === 'ALL' ? '' : $event"
           />
         </slot>
       </div>
-      <div class="grid min-w-0 grid-cols-2 gap-3 sm:col-span-2 xl:col-span-3">
+      <div class="filter-dates grid min-w-0 grid-cols-2 gap-3">
         <slot name="dates" v-bind="fieldScope">
           <div class="min-w-0">
             <label
               :for="`${idPrefix}-date-from`"
-              class="mb-1.5 block text-sm font-medium text-highlighted"
+              class="mb-1 block text-xs font-medium text-highlighted"
               >From (UTC)</label
             >
             <UInput
               :id="`${idPrefix}-date-from`"
               v-model="draft.dateFrom"
               type="date"
-              size="lg"
+              size="md"
               class="w-full"
               :aria-describedby="error ? `${idPrefix}-filter-error` : undefined"
             />
@@ -203,18 +201,29 @@ function clear() {
           <div class="min-w-0">
             <label
               :for="`${idPrefix}-date-to`"
-              class="mb-1.5 block text-sm font-medium text-highlighted"
+              class="mb-1 block text-xs font-medium text-highlighted"
               >To (UTC)</label
             >
             <UInput
               :id="`${idPrefix}-date-to`"
               v-model="draft.dateTo"
               type="date"
-              size="lg"
+              size="md"
               class="w-full"
               :aria-describedby="error ? `${idPrefix}-filter-error` : undefined"
             />
           </div>
+        </slot>
+      </div>
+      <div class="filter-actions flex flex-wrap items-center gap-2">
+        <slot name="actions" v-bind="fieldScope" :apply="apply" :clear="clear">
+          <UButton :loading="busy" type="submit" class="min-h-10" icon="i-lucide-list-filter"
+            >Apply filters</UButton
+          >
+          <UButton type="button" color="neutral" variant="ghost" class="min-h-10" @click="clear"
+            >Clear filters</UButton
+          >
+          <p class="filter-date-hint text-xs text-muted">Dates include the full day in UTC.</p>
         </slot>
       </div>
       <slot name="extra-fields" v-bind="fieldScope" />
@@ -222,16 +231,48 @@ function clear() {
     <p v-if="error" :id="`${idPrefix}-filter-error`" role="alert" class="mt-3 text-sm text-error">
       <slot name="error" :message="error">{{ error }}</slot>
     </p>
-    <div class="mt-4 flex flex-wrap items-center gap-3">
-      <slot name="actions" v-bind="fieldScope" :apply="apply" :clear="clear">
-        <UButton :loading="busy" type="submit" class="min-h-11" icon="i-lucide-list-filter"
-          >Apply filters</UButton
-        >
-        <UButton type="button" color="neutral" variant="ghost" class="min-h-11" @click="clear"
-          >Clear filters</UButton
-        >
-        <p class="text-xs text-muted">Dates include the full day in UTC.</p>
-      </slot>
-    </div>
   </form>
 </template>
+
+<style scoped>
+.transaction-filters {
+  container-type: inline-size;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.filter-search,
+.filter-account,
+.filter-dates,
+.filter-actions {
+  grid-column: 1 / -1;
+}
+@container (min-width: 700px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1.8fr)) repeat(3, minmax(0, 1fr));
+  }
+  .filter-search,
+  .filter-account {
+    grid-column: auto;
+  }
+  .filter-dates {
+    grid-column: 1 / 3;
+  }
+  .filter-actions {
+    grid-column: 3 / -1;
+    min-height: 40px;
+  }
+  .filter-date-hint {
+    flex-basis: 100%;
+  }
+}
+@container (min-width: 1000px) {
+  .filter-date-hint {
+    flex-basis: auto;
+    margin-left: auto;
+  }
+}
+</style>

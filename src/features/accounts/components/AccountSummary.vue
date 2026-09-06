@@ -3,7 +3,7 @@ import { computed, type VNodeChild } from 'vue'
 import UIcon from '@nuxt/ui/components/Icon.vue'
 import type { Account } from '@/domain/accounts/account'
 import MoneyDisplay from '@/shared/components/MoneyDisplay.vue'
-const props = defineProps<{ accounts: Account[] }>()
+const props = defineProps<{ accounts: Account[]; compact?: boolean }>()
 const total = computed(() =>
   props.accounts.reduce((sum, account) => sum + BigInt(account.balanceMinor), 0n),
 )
@@ -33,6 +33,59 @@ const scope = computed(() => ({
 </script>
 <template>
   <section
+    v-if="compact"
+    aria-label="Account summary"
+    class="bank-summary grid grid-cols-2 gap-3 border px-4 py-3 sm:grid-cols-[1.4fr_1fr_1fr] sm:items-center"
+  >
+    <div class="col-span-2 min-w-0 sm:col-span-1">
+      <slot name="total" v-bind="scope">
+        <h2 class="text-xs font-medium text-muted">Total balance · USD</h2>
+        <MoneyDisplay
+          :amount-minor="total"
+          class="mt-1 block text-2xl font-semibold tracking-tight text-highlighted"
+        />
+        <p class="mt-0.5 text-xs text-muted">
+          {{ accounts.length }} accounts · Includes frozen balances
+        </p>
+      </slot>
+    </div>
+    <div
+      class="min-w-0 border-t border-indigo-200/60 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4"
+    >
+      <slot name="active" v-bind="scope">
+        <p class="flex items-center gap-1.5 text-xs text-muted">
+          <UIcon
+            name="i-lucide-circle-check"
+            class="size-3.5 shrink-0 text-emerald-700"
+            aria-hidden="true"
+          />In active accounts
+        </p>
+        <MoneyDisplay
+          :amount-minor="active"
+          class="mt-1 block text-lg font-semibold tracking-tight text-highlighted"
+        />
+      </slot>
+    </div>
+    <div
+      class="min-w-0 border-t border-indigo-200/60 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4"
+    >
+      <slot name="frozen" v-bind="scope">
+        <p class="flex items-center gap-1.5 text-xs text-muted">
+          <UIcon
+            name="i-lucide-lock-keyhole"
+            class="size-3.5 shrink-0 text-amber-700"
+            aria-hidden="true"
+          />In frozen accounts
+        </p>
+        <MoneyDisplay
+          :amount-minor="frozen"
+          class="mt-1 block text-lg font-semibold tracking-tight text-highlighted"
+        />
+      </slot>
+    </div>
+  </section>
+  <section
+    v-else
     aria-label="Account summary"
     class="bank-summary grid grid-cols-2 gap-5 rounded-3xl border p-5 sm:p-7 md:grid-cols-[1.5fr_1fr_1fr] md:items-center"
   >
