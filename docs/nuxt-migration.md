@@ -47,7 +47,7 @@ The upstream root is private runtime config. The browser always calls same-origi
 
 The server QueryClient is created inside the plugin, serialized after rendering and cleared. Page/API responses have `Cache-Control: private, no-store`; do not introduce shared response caches for authenticated banking data. The reset UI is hidden and `/api/demo/*` returns 404 in backend mode. Missing backend configuration returns a structured 503. Unknown page routes return actual HTTP 404 responses.
 
-Keep backend response shapes compatible with `src/data/api/bankingApi.ts` and the endpoint/query tables in README. Success payloads remain trusted typed contracts; introduce runtime response validation when integrating an uncontrolled API. Customer ownership, permissions and transactional consistency must be enforced by the backend. Implement session login/refresh/logout and clear the banking query cache on identity changes when authentication is added. If backend SSR reads refresh cookies, explicitly propagate those cookies to the page response; the current bridge does not implement that session lifecycle. Financial mutation endpoints will also need the backend's CSRF/idempotency contract.
+Keep backend response shapes compatible with `src/contracts/transactions.ts`, `src/contracts/pagination.ts` and the domain models referenced by `src/contracts/banking.ts` and the endpoint/query tables in README. Success payloads remain trusted typed contracts; introduce runtime response validation when integrating an uncontrolled API. Customer ownership, permissions and transactional consistency must be enforced by the backend. Implement session login/refresh/logout and clear the banking query cache on identity changes when authentication is added. If backend SSR reads refresh cookies, explicitly propagate those cookies to the page response; the current bridge does not implement that session lifecycle. Financial mutation endpoints will also need the backend's CSRF/idempotency contract.
 
 ## Commands and deployment
 
@@ -75,6 +75,20 @@ Deploy `.output/` to a Node/Nitro-compatible host and run `npm start`, with `NUX
 - Browser: Accounts populated through native MSW/IndexedDB, route navigation and transaction search worked, reload preserved `query=salary`, backend Accounts hydrated successfully, and no warning/error logs appeared in the inspected demo/backend pages.
 - Isolated UI tests use real Nuxt UI primitives with a small routing/metadata adapter; they are not represented as full Nuxt runtime tests. The separate smoke and browser checks cover the actual Nuxt build.
 - Historical tablet/mobile and transfer verification claims belong to the dated step reports; this migration does not implement or claim end-to-end transfer coverage.
+
+## Shared contracts revision — 2026-09-06
+
+`src/contracts/` is the common type boundary for UI, API adapters and use cases. Import each type from its defining module, without a client/use-case re-export:
+
+- `transactions.ts`: `TransactionQuery` and `PaginatedTransactions`.
+- `pagination.ts`: `Pagination`, used directly by the pagination component.
+- `banking.ts`: `BankingApi`, implemented by `createBankingApi` and consumed by `BankingContext` without `ReturnType<typeof createBankingApi>`.
+
+Contract files import only domain/contract types. ESLint disallows dependencies on implementation/UI layers, runtime imports and contract re-export barrels. Domain code cannot import contracts. Runtime query validation remains in the HTTP adapter; `ApiError` lives in `src/data/api/apiError.ts` and is shared directly by the client, error UI and Nuxt payload codec.
+
+Domain entities and the privileged repository port/state remain in their owning layers. Do not publish complete persistence snapshots as API contracts. Keep fetch transport configuration with the adapter and feature-only form types inside their feature. This changes type ownership and import paths; HTTP shapes and SSR behavior stay the same.
+
+Verification for this refactor: typecheck, lint, 153 unit/component tests, production build, SSR smoke, formatting and seven dependency-boundary checks passed.
 
 ## Next work
 

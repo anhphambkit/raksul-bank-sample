@@ -1,23 +1,9 @@
 import type { Customer } from '../../domain/customers/customer'
 import type { Account } from '../../domain/accounts/account'
 import type { Beneficiary } from '../../domain/beneficiaries/beneficiary'
-import type {
-  PaginatedTransactions,
-  TransactionQuery,
-} from '../../use-cases/transactions/listTransactions'
-
-export type { PaginatedTransactions, TransactionQuery }
-
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+import type { PaginatedTransactions, TransactionQuery } from '../../contracts/transactions'
+import type { BankingApi } from '../../contracts/banking'
+import { ApiError } from './apiError'
 
 /** Typed boundary for the controlled mock API. Abort signals pass through to fetch. */
 export type BankingFetch = (
@@ -28,7 +14,7 @@ export type BankingFetch = (
 export function createBankingApi(
   baseUrl = '/api/',
   fetcher: BankingFetch = (url, init) => fetch(url, init),
-) {
+): BankingApi {
   async function request<T>(path: string, signal?: AbortSignal, method = 'GET'): Promise<T> {
     const response = await fetcher(`${baseUrl.replace(/\/?$/, '/')}${path}`, {
       method,

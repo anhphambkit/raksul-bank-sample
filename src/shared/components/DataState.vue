@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import UButton from '@nuxt/ui/components/Button.vue'
 import USkeleton from '@nuxt/ui/components/Skeleton.vue'
-import { ApiError } from '@/data/api/bankingApi'
+import { ApiError } from '@/data/api/apiError'
 defineProps<{
   loading: boolean
   error?: unknown

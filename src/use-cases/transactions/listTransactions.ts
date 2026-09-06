@@ -1,21 +1,5 @@
 import type { Transaction } from '../../domain/transactions/transaction'
-
-export interface TransactionQuery {
-  accountId?: string
-  query?: string
-  direction?: Transaction['direction']
-  type?: Transaction['type']
-  status?: Transaction['status']
-  dateFrom?: string
-  dateTo?: string
-  page: number
-  pageSize: number
-}
-
-export interface PaginatedTransactions {
-  data: Transaction[]
-  pagination: { page: number; pageSize: number; totalItems: number; totalPages: number }
-}
+import type { PaginatedTransactions, TransactionQuery } from '../../contracts/transactions'
 
 /** HTTP validates query values first. Scope before filtering, counting or pagination. */
 export function listTransactions(

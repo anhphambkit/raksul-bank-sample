@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { TransactionQuery } from '../../use-cases/transactions/listTransactions'
+import type { TransactionQuery } from '../../contracts/transactions'
 
 const positiveInteger = (maximum: number) =>
   z

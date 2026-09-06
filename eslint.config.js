@@ -63,10 +63,42 @@ export default defineConfigWithVueTs(
               message: 'Domain code imports only domain modules.',
             },
             {
-              regex: '(^|/)(app|use-cases|data|features|pages|shared)(/|$)',
+              regex: '(^|/)(app|contracts|use-cases|data|features|pages|shared)(/|$)',
               message: 'Domain rules must not depend on outer layers.',
             },
           ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/contracts/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            testImports,
+            {
+              regex: '^(?!\\.{1,2}/|@/(domain|contracts)/)',
+              message: 'Contracts import only domain types or other contracts.',
+            },
+            {
+              regex: '(^|/)(app|use-cases|data|features|pages|layouts|plugins|shared)(/|$)',
+              message: 'Contracts must not depend on implementations or UI.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportDeclaration[importKind!="type"]',
+          message: 'Contracts use type-only imports; keep runtime code in its owning layer.',
+        },
+        {
+          selector: 'ExportNamedDeclaration[source], ExportAllDeclaration',
+          message: 'Import contract types from their defining module instead of re-exporting them.',
         },
       ],
     },
@@ -82,7 +114,8 @@ export default defineConfigWithVueTs(
             {
               regex:
                 '(^|/)(app|data|features|pages|shared)(/|$)|^(vue|vue-router|nuxt|h3|nitropack|#app|#imports|msw|@vue|@nuxt|@tanstack)(/|$)',
-              message: 'Use cases depend on domain and ports, not Vue or concrete adapters.',
+              message:
+                'Use cases depend on domain, contracts and ports, not Vue or concrete adapters.',
             },
           ],
         },

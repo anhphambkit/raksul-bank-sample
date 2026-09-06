@@ -1,6 +1,6 @@
 import { computed, onServerPrefetch, type Ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { type TransactionQuery } from '@/data/api/bankingApi'
+import type { TransactionQuery } from '@/contracts/transactions'
 import { useBankingContext } from '@/data/api/bankingContext'
 import { bankingQueryKeys } from '@/data/api/bankingQueryKeys'
 

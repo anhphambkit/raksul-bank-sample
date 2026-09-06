@@ -1,8 +1,8 @@
 import { inject, type InjectionKey, type Ref } from 'vue'
-import type { createBankingApi } from './bankingApi'
+import type { BankingApi } from '../../contracts/banking'
 
 export interface BankingContext {
-  api: ReturnType<typeof createBankingApi>
+  api: BankingApi
   ready: Ref<boolean>
   mocksEnabled: boolean
 }

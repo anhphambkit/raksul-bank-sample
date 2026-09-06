@@ -79,22 +79,25 @@ Demo: Nuxt UI → typed API client → browser MSW → use case → repository p
 Backend: Nuxt SSR/browser → typed API client → Nitro /api/* → configured backend
 ```
 
-| Directory                          | Responsibility                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| `src/app.vue`, `src/app.config.ts` | Nuxt root and UI theme configuration.                                          |
-| `src/app/config/`                  | Validated runtime configuration.                                               |
-| `src/layouts/`, `src/plugins/`     | Nuxt layout, request-scoped API/query plugins and payload codecs.              |
-| `server/api/`                      | Same-origin backend forwarding boundary.                                       |
-| `src/pages/`                       | Nuxt file-based route pages.                                                   |
-| `src/features/`                    | Account and transaction components/queries, recent activity and demo reset.    |
-| `src/domain/`                      | Banking entities, money, masking and pure transfer rules.                      |
-| `src/use-cases/`                   | Repository contract, customer scoping and transaction queries.                 |
-| `src/data/`                        | HTTP client, MSW handlers, seed, persistence validation and IndexedDB adapter. |
-| `src/shared/`                      | Theme, async states, money display and masked account numbers.                 |
-| `src/tests/`                       | Domain, data/API and component tests.                                          |
-| `docs/adr/`                        | Architecture decision records.                                                 |
+| Directory                          | Responsibility                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/app.vue`, `src/app.config.ts` | Nuxt root and UI theme configuration.                                                      |
+| `src/app/config/`                  | Validated runtime configuration.                                                           |
+| `src/layouts/`, `src/plugins/`     | Nuxt layout, request-scoped API/query plugins and payload codecs.                          |
+| `server/api/`                      | Same-origin backend forwarding boundary.                                                   |
+| `src/pages/`                       | Nuxt file-based route pages.                                                               |
+| `src/features/`                    | Account and transaction components/queries, recent activity and demo reset.                |
+| `src/contracts/`                   | Shared API/query types and the public banking client interface; no implementation imports. |
+| `src/domain/`                      | Banking entities, money, masking and pure transfer rules.                                  |
+| `src/use-cases/`                   | Repository contract, customer scoping and transaction queries.                             |
+| `src/data/`                        | HTTP client, MSW handlers, seed, persistence validation and IndexedDB adapter.             |
+| `src/shared/`                      | Theme, async states, money display and masked account numbers.                             |
+| `src/tests/`                       | Domain, data/API and component tests.                                                      |
+| `docs/adr/`                        | Architecture decision records.                                                             |
 
 MSW translates HTTP requests and responses. Use cases own customer scoping and filtering. Vue components do not import repositories or seed data. Domain code is independent of Vue, HTTP and persistence. ESLint checks these import boundaries.
+
+Shared query/response shapes live in `src/contracts/transactions.ts`; pagination metadata lives in `src/contracts/pagination.ts`. API clients, use cases and UI import those types directly from their defining modules. `src/contracts/banking.ts` defines the public `BankingApi` interface, implemented by the HTTP factory and used by the injected context. Contracts use type-only imports from domain/other contracts. Domain entities stay in `domain/`; privileged persistence state stays with the repository port. `ApiError` belongs to `data/api/apiError.ts`, so UI and SSR payload handling do not import the HTTP factory just to identify errors. Do not re-export contracts through client or use-case implementations.
 
 ## Data Model
 

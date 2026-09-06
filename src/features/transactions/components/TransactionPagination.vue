@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import USelect from '@nuxt/ui/components/Select.vue'
-import type { PaginatedTransactions } from '@/data/api/bankingApi'
-const props = defineProps<{ pagination: PaginatedTransactions['pagination']; busy: boolean }>()
+import type { Pagination } from '@/contracts/pagination'
+const props = defineProps<{ pagination: Pagination; busy: boolean }>()
 defineEmits<{ page: [page: number]; pageSize: [pageSize: number] }>()
 const sizes = computed(() =>
   [...new Set([10, 20, 50, 100, props.pagination.pageSize])].sort((a, b) => a - b),

@@ -1,4 +1,4 @@
-import type { TransactionQuery } from './bankingApi'
+import type { TransactionQuery } from '../../contracts/transactions'
 
 export const bankingQueryKeys = {
   all: ['bank'] as const,

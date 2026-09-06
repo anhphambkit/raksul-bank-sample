@@ -1,5 +1,5 @@
 import { definePayloadPlugin, definePayloadReducer, definePayloadReviver } from '#app'
-import { ApiError } from '@/data/api/bankingApi'
+import { ApiError } from '@/data/api/apiError'
 
 export default definePayloadPlugin(() => {
   definePayloadReducer(

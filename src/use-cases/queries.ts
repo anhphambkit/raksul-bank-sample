@@ -1,6 +1,7 @@
 import type { BankingRepository } from './ports/BankingRepository'
 import { selectCustomerAccounts } from './accounts/selectCustomerAccounts'
-import { listTransactions, type TransactionQuery } from './transactions/listTransactions'
+import { listTransactions } from './transactions/listTransactions'
+import type { TransactionQuery } from '../contracts/transactions'
 
 export class QueryError extends Error {
   readonly code = 'NOT_FOUND'
