@@ -3,6 +3,8 @@ import type { Beneficiary } from '../domain/beneficiaries/beneficiary'
 import type { Customer } from '../domain/customers/customer'
 import type { PaginatedTransactions, TransactionQuery } from './transactions'
 
+import type { TransferRequest, TransferReceipt } from './transfers'
+
 /** Public client contract; transport and persistence details belong to adapters. */
 export interface BankingApi {
   customer(signal?: AbortSignal): Promise<Customer>
@@ -13,5 +15,7 @@ export interface BankingApi {
     signal?: AbortSignal,
   ): Promise<PaginatedTransactions>
   beneficiaries(signal?: AbortSignal): Promise<Beneficiary[]>
+  executeTransfer(request: TransferRequest): Promise<TransferReceipt>
+  transfer(id: string, signal?: AbortSignal): Promise<TransferReceipt>
   reset(signal?: AbortSignal): Promise<void>
 }

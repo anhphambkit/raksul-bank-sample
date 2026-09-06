@@ -1,3 +1,11 @@
+import { DomainError } from '../../../domain/errors'
+import type { Transfer } from '../../../domain/transfers/transfer'
+import {
+  executeTransfer,
+  getTransfer,
+  TransferError,
+} from '../../../use-cases/transfers/executeTransfer'
+import { transferRequestSchema } from '../../api/transferRequestSchema'
 import { http, HttpResponse } from 'msw'
 import { createBankingQueries, QueryError } from '../../../use-cases/queries'
 import { RepositoryError, type BankingRepository } from '../../../use-cases/ports/BankingRepository'
@@ -14,6 +22,17 @@ async function respond(action: () => Promise<unknown>) {
       ? new HttpResponse(null, { status: 204 })
       : HttpResponse.json(result)
   } catch (error) {
+    if (error instanceof DomainError) return failure(422, error.code, error.message)
+    if (error instanceof TransferError)
+      return failure(
+        error.code === 'IDEMPOTENCY_CONFLICT'
+          ? 409
+          : error.code === 'TRANSFER_NOT_FOUND'
+            ? 404
+            : 400,
+        error.code,
+        error.message,
+      )
     if (error instanceof QueryError) return failure(404, error.code, error.message)
     if (error instanceof RepositoryError)
       return failure(
@@ -27,7 +46,22 @@ async function respond(action: () => Promise<unknown>) {
 
 export function createBankingHandlers(repository: BankingRepository) {
   const queries = createBankingQueries(repository)
+  const receipt = (transfer: Transfer) => {
+    const { idempotencyKey: _key, requestHash: _hash, ...result } = transfer
+    void _key
+    void _hash
+    return result
+  }
   return [
+    http.post('*/api/transfers', async ({ request }) => {
+      const parsed = transferRequestSchema.safeParse(await request.json().catch(() => null))
+      if (!parsed.success)
+        return failure(400, 'INVALID_REQUEST', 'Check the transfer details and amount.')
+      return respond(async () => receipt(await executeTransfer(repository, parsed.data)))
+    }),
+    http.get('*/api/transfers/:transferId', ({ params }) =>
+      respond(async () => receipt(await getTransfer(repository, String(params.transferId)))),
+    ),
     http.get('*/api/customer', () => respond(queries.customer)),
     http.get('*/api/accounts', () => respond(queries.accounts)),
     http.get('*/api/accounts/:accountId', ({ params }) =>

@@ -3,23 +3,33 @@ import type { Account } from '../../domain/accounts/account'
 import type { Beneficiary } from '../../domain/beneficiaries/beneficiary'
 import type { PaginatedTransactions, TransactionQuery } from '../../contracts/transactions'
 import type { BankingApi } from '../../contracts/banking'
+import type { TransferRequest, TransferReceipt } from '../../contracts/transfers'
 import { ApiError } from './apiError'
 
 /** Typed boundary for the controlled mock API. Abort signals pass through to fetch. */
 export type BankingFetch = (
   url: string,
-  init: { method: string; signal?: AbortSignal; headers: Record<string, string> },
+  init: { method: string; signal?: AbortSignal; headers: Record<string, string>; body?: string },
 ) => Promise<Pick<Response, 'ok' | 'status' | 'json'>>
 
 export function createBankingApi(
   baseUrl = '/api/',
   fetcher: BankingFetch = (url, init) => fetch(url, init),
 ): BankingApi {
-  async function request<T>(path: string, signal?: AbortSignal, method = 'GET'): Promise<T> {
+  async function request<T>(
+    path: string,
+    signal?: AbortSignal,
+    method = 'GET',
+    body?: unknown,
+  ): Promise<T> {
     const response = await fetcher(`${baseUrl.replace(/\/?$/, '/')}${path}`, {
       method,
       signal,
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     }).catch((error: unknown) => {
       if (signal?.aborted) throw error
       throw new ApiError(
@@ -64,6 +74,10 @@ export function createBankingApi(
       return request<PaginatedTransactions>(`transactions?${params}`, signal)
     },
     beneficiaries: (signal?: AbortSignal) => request<Beneficiary[]>('beneficiaries', signal),
+    executeTransfer: (body: TransferRequest) =>
+      request<TransferReceipt>('transfers', undefined, 'POST', body),
+    transfer: (id: string, signal?: AbortSignal) =>
+      request<TransferReceipt>(`transfers/${encodeURIComponent(id)}`, signal),
     reset: (signal?: AbortSignal) => request<void>('demo/reset', signal, 'POST'),
   }
 }
