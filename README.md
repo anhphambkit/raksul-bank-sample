@@ -13,7 +13,9 @@ A personal banking dashboard built with Nuxt 4, Vue 3 and TypeScript. It uses a 
 - Typed API client and MSW handlers for customer, accounts, transaction queries, beneficiaries and reset.
 - Deterministic seed data, validated persistence and atomic repository updates.
 - Exact integer-cent arithmetic, atomic transfer execution and persistent idempotency.
-- Transfer details, masked review, explicit confirmation and completion receipt for own accounts and saved beneficiaries.
+- Transfer details, masked review, explicit confirmation and completion receipt for own accounts and saved/new beneficiaries.
+- Recipient creation, persisted draft/retry recovery and automatic same-browser tab refresh after committed changes.
+- Persistent light/dark themes, a focused Storybook catalog and visual regression baselines.
 
 Transfers are simulated and complete in one request after IndexedDB commits. No real funds move.
 
@@ -146,6 +148,7 @@ Seed balances reconcile to fixed opening balances plus completed activity. Pendi
 | GET    | `/api/accounts/:accountId`   | Owned account or 404.                               |
 | GET    | `/api/transactions`          | Filtered activity and pagination.                   |
 | GET    | `/api/beneficiaries`         | Current customer's beneficiaries.                   |
+| POST   | `/api/beneficiaries`         | Save or return an existing USD recipient.           |
 | POST   | `/api/transfers`             | Completed receipt; requires an idempotency key.     |
 | GET    | `/api/transfers/:transferId` | Customer-scoped completed receipt or 404.           |
 | POST   | `/api/demo/reset`            | 204 after restoring the seed.                       |
@@ -174,9 +177,9 @@ The page distinguishes initial loading, API errors with retry, an empty dataset,
 
 ## State Management
 
-Applied transaction filters and pagination belong to Vue Router query parameters. Unapplied filters, transfer drafts and the current transfer stage are local Vue state; UForm and Zod handle form validation. There is no Pinia store or duplicate authoritative account cache.
+Applied transaction filters and pagination belong to Vue Router query parameters. Unapplied filters and the current transfer stage are local Vue state; transfer details/review/retry context are also persisted in browser-local recovery storage; UForm and Zod handle form validation. There is no Pinia store or duplicate authoritative account cache.
 
-TanStack Vue Query manages API state with a 30-second stale time, one query retry and no mutation retries. Reset cancels in-flight banking queries, awaits persistence and invalidates the cache. Other tabs still need to refetch; there is no push synchronization or cross-device persistence.
+TanStack Vue Query manages API state with a 30-second stale time, one query retry and no mutation retries. Reset cancels in-flight banking queries, awaits persistence and invalidates the cache. Committed demo mutations notify other tabs on the same origin to cancel stale queries and refetch. Cross-device persistence is deferred.
 
 ## Transfer Semantics
 
@@ -188,22 +191,24 @@ TanStack Vue Query manages API state with a 30-second stale time, one query retr
 | Rejected validation or aborted write | Unchanged       | Unchanged                         | No new transfer or activity                                           |
 | Same idempotency key and payload     | No second debit | No second credit                  | Original result is returned                                           |
 
-Open **Transfer**, choose an active source, then **My accounts** or **Someone else**. Select a destination or saved beneficiary, enter a plain USD decimal amount and an optional reference (up to 140 characters), then select **Review transfer**. Review displays masked account numbers, recipient/bank, balance, currency, amount and reference. Only **Confirm transfer** submits a payment. The receipt shows the committed transfer ID and UTC completion time, with links to activity and accounts.
+Open **Transfer**, choose an active source, then **My accounts** or **Someone else**. Select a destination or saved beneficiary (or use **Add recipient** under **Someone else**), enter a plain USD decimal amount and an optional reference (up to 140 characters), then select **Review transfer**. Review displays masked account numbers, recipient/bank, balance, currency, amount and reference. Only **Confirm transfer** submits a payment. The receipt shows the committed transfer ID and UTC completion time, with links to activity and accounts.
 
 Own-account and saved internal-recipient transfers debit the source, credit the destination and create linked debit/credit activity. External recipients receive a stored recipient snapshot and one source debit; there is no external balance or real settlement. Hidden recipient accounts never appear in customer account/activity queries.
 
 `executeTransfer` prepares a SHA-256 fingerprint of the normalized request, then resolves the source and recipient, checks idempotency, validates balances and applies all changes inside one synchronous repository update callback. It returns only after the IndexedDB transaction commits. Failed validation or persistence leaves the entire previous state intact. Concurrent requests use the latest committed balance. The same key and payload return the earlier result; changing the payload with a used key returns a conflict. Reset clears transfers and their idempotency records along with the rest of the demo.
 
+`POST /api/beneficiaries` accepts `displayName`, `bankName`, `accountNumber` (8–20 digits), and `currency: "USD"`. Internal recipient accounts must exist; external details are simulated. Saving does not transfer funds.
+
 `POST /api/transfers` accepts `idempotencyKey`, `sourceAccountId`, `destination`, `amountMinor`, `currency: "USD"` and optional `reference`. Destination is `{ kind: "OWN_ACCOUNT", accountId }` or `{ kind: "BENEFICIARY", beneficiaryId }`; recipient snapshots are resolved by the use case. The key is a nonblank string of at most 128 characters. Requests reject unknown fields, unsafe/fractional minor units and unavailable accounts/recipients. Responses omit the stored key and fingerprint. Invalid payloads return 400, domain validation 422, key conflicts 409, missing receipts 404 and storage failures 503.
 
-The mutation never automatically retries. Confirmation is guarded against double clicks, and successful completion invalidates account/activity caches. A definite validation rejection explains that no money moved and refreshes the available balance. Network, storage or ambiguous errors do not claim failure or success: review retains the exact request/key for an explicit safe retry, blocks in-app navigation and warns before unloading. Keep that page open until the outcome is resolved. Drafts and retry keys are held in memory; forcibly closing/reloading discards them. Committed balances/activity persist across reloads, and receipts remain retrievable through the API. A production integration needs durable pending-request recovery and backend-enforced idempotency/authorization.
+The mutation never automatically retries. Confirmation is guarded against double clicks, and successful completion invalidates account/activity caches. A definite validation rejection explains that no money moved and refreshes the available balance. Network, storage or ambiguous errors do not claim failure or success: review retains the exact request/key for an explicit safe retry, blocks in-app navigation and warns before unloading. The browser saves drafts and immutable retry requests before confirmation. After forced close/reload, opening Transfer restores the saved context for explicit same-key retry; no payment is sent automatically. Inaccessible recovery storage blocks new confirmations. Reset clears demo recovery records. Committed balances/activity persist across reloads, and receipts remain retrievable through the API. A production integration still needs server-backed recovery, session/privacy controls and backend-enforced idempotency/authorization.
 
 ## Assumptions and Engineering Notes
 
 - The demo assumes one already authenticated fictional customer. It implements no login or server-side authorization; masking is presentation only, and full fictional numbers remain in API/storage data.
 - Transfers use USD, execute within one request and await storage commit. There are no fees, exchange rates, holds, overdraft or asynchronous settlement. External destination balances are outside this system.
 - Safe integer cents are authoritative; BigInt is used for aggregate display. Decimal text is parsed without floating-point rounding.
-- IndexedDB gives atomic, serialized local updates. It provides neither cross-device persistence nor automatic cross-tab UI synchronization. Browser retention and durability are not production database guarantees.
+- IndexedDB gives atomic, serialized local updates. Committed writes notify same-origin demo tabs to refetch; cross-device persistence is deferred. Browser retention and durability are not production database guarantees.
 - The backend bridge forwards the request context but does not implement session lifecycle, authorization or payment processing. A real backend must enforce ownership, idempotency and transactional consistency.
 
 ## Testing
@@ -218,9 +223,11 @@ Coverage includes exact money conversion and bounds, transfer validation, maskin
 
 Manual browser checks cover desktop/tablet/mobile layouts, navigation, reset, native IndexedDB/API integration and large-balance wrapping. Transfer integration tests exercise the real form, HTTP handlers and IndexedDB adapter (fake-indexeddb), including lost-response replay and concurrent balance checks. Native browser verification covers successful transfers, persisted balances/activity and reset.
 
+See [enhancement behavior and verification commands](docs/enhancements.md) for recipients, draft recovery, tab synchronization, themes, Storybook and visual regression.
+
 ## Known Limitations
 
-The transfer form supports saved beneficiaries; adding recipients and durable recovery of an interrupted draft are outside this demo. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
+The transfer form supports saved/new beneficiaries and local recovery after interruption. External recipient existence is simulated. Cross-device synchronization remains deferred; recovery storage can be cleared or evicted and is not a production recovery guarantee. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
 
 ## Production Considerations
 

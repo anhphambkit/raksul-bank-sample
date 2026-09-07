@@ -19,4 +19,4 @@ TanStack Vue Query owns remote account/activity/beneficiary state. Create its cl
 
 ## Consequences
 
-Transfer rules can be tested without Vue; browser and SSR paths share typed contracts and feature UI. The boundaries add a few explicit imports but avoid generic service wrappers. SSR requires a payload codec for `ApiError`, readiness-aware queries and a request-local cache. Demo data cannot be rendered during SSR. Transfer drafts remain memory-only, and every successful mutation must invalidate related queries. Authentication would also require clearing caches on identity changes; it is not implemented.
+Transfer rules can be tested without Vue; browser and SSR paths share typed contracts and feature UI. The boundaries add a few explicit imports but avoid generic service wrappers. SSR requires a payload codec for `ApiError`, readiness-aware queries and a request-local cache. Demo data cannot be rendered during SSR. Transfer drafts/retry context are also persisted locally for explicit recovery, and every successful mutation must invalidate related queries. Authentication would also require clearing caches on identity changes; it is not implemented.

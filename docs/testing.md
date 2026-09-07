@@ -87,3 +87,11 @@ Some corresponding UI behaviors can be tested with browser MSW (for example rend
 The current fixture uses invented accounts and a test cookie to select scenarios; it is not real authentication or a full banking backend. Mock success proves FE behavior against the fixture, not that the backend conforms to the API contract.
 
 Add a separate Playwright configuration/environment for the real test backend with `NUXT_PUBLIC_ENABLE_MOCKS=false` and `NUXT_API_BASE_URL` pointing to that backend. Supply test authentication and isolated, resettable data. Keep fixture assertions out of that suite; names and the fixture cookie are not real-backend contracts. Cover a small set of critical flows end to end, and retain deterministic fixture tests for failures and SSR boundaries. Do not run the demo reset endpoint against a real backend.
+
+## Optional enhancement suites
+
+`src/tests/data/createBeneficiary.test.ts` covers atomic recipient deduplication, new-recipient transfer, internal resolution and invalid requests. `src/tests/ui/transferRecovery.test.ts` covers exact request/key retention, unresolved-record protection and corrupt/unavailable storage.
+
+`scripts/e2e/enhancements.spec.mjs` covers theme persistence/keyboard toggle, adding and selecting a new recipient through the UI, draft restoration and same-key replay after a simulated committed response loss/page close, plus automatic balance refresh/reset in a second tab.
+
+Build the app before `npm run test:visual` and build Storybook before `npm run test:storybook`. Both use Chromium; see [enhancement commands and baseline rules](enhancements.md). Cross-device synchronization is deferred and is not claimed by any test.

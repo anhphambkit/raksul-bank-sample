@@ -97,3 +97,7 @@ The transfer use case, HTTP endpoints and details/review/receipt UI are complete
 README and this migration document are versioned. The master handoff, earlier execution guides and recovered conversation notes remain ignored under the existing local documentation policy, and have also been updated locally.
 
 References: [Nuxt plugins](https://nuxt.com/docs/4.x/directory-structure/app/plugins), [Nuxt server directory](https://nuxt.com/docs/4.x/directory-structure/server), [TanStack Query SSR](https://tanstack.com/query/latest/docs/framework/vue/guides/ssr).
+
+## Optional enhancement integration
+
+The frontend now calls `POST /api/beneficiaries` to save recipients and persists transfer drafts/request keys in customer/mode-scoped browser storage. A backend adapter must implement the documented recipient contract and idempotent transfers. Storage-event invalidation is enabled only for the IndexedDB demo; it is not backend realtime or cross-device synchronization. Nuxt color-mode provides the persisted light/dark preference. See [enhancement details](enhancements.md).
