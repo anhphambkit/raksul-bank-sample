@@ -1,5 +1,7 @@
 # Raksul-bank
 
+## Overview
+
 A personal banking dashboard built with Nuxt 4, Vue 3 and TypeScript. It uses a mock HTTP API and browser-local IndexedDB persistence, with fictional data and no real banking connection.
 
 ## What I Built
@@ -61,17 +63,20 @@ See [Nuxt migration and backend handoff](docs/nuxt-migration.md) for contracts, 
 
 ## Available Scripts
 
-| Command                 | Purpose                                                   |
-| ----------------------- | --------------------------------------------------------- |
-| `npm run dev`           | Start the local development server.                       |
-| `npm run build`         | Typecheck and build Nitro into `.output/`.                |
-| `npm run preview`       | Preview the production server locally.                    |
-| `npm run typecheck`     | Check application and tooling types.                      |
-| `npm run lint`          | Run ESLint.                                               |
-| `npm run format:check`  | Check Prettier formatting.                                |
-| `npm run test -- --run` | Run the unit/component suite once.                        |
-| `npm run test:ssr`      | Verify the built SSR server with a local backend fixture. |
-| `npm start`             | Run `.output/server/index.mjs` in deployment.             |
+| Command                  | Purpose                                                   |
+| ------------------------ | --------------------------------------------------------- |
+| `npm run dev`            | Start the local development server.                       |
+| `npm run build`          | Typecheck and build Nitro into `.output/`.                |
+| `npm run preview`        | Preview the production server locally.                    |
+| `npm run typecheck`      | Check application and tooling types.                      |
+| `npm run lint`           | Run ESLint.                                               |
+| `npm run format:check`   | Check Prettier formatting.                                |
+| `npm run test -- --run`  | Run the unit/component suite once.                        |
+| `npm run test:ssr`       | Verify the built SSR server with a local backend fixture. |
+| `npm run test:e2e`       | Build and run Chromium demo/backend fixture checks.       |
+| `npm run test:e2e:built` | Run Chromium checks against an existing build.            |
+| `npm run test:all`       | Run unit tests, build, SSR and browser checks.            |
+| `npm start`              | Run `.output/server/index.mjs` in deployment.             |
 
 ## Architecture Overview
 
@@ -80,21 +85,23 @@ Demo: Nuxt UI → typed API client → browser MSW → use case → repository p
 Backend: Nuxt SSR/browser → typed API client → Nitro /api/* → configured backend
 ```
 
-| Directory                          | Responsibility                                                                             |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/app.vue`, `src/app.config.ts` | Nuxt root and UI theme configuration.                                                      |
-| `src/app/config/`                  | Validated runtime configuration.                                                           |
-| `src/layouts/`, `src/plugins/`     | Nuxt layout, request-scoped API/query plugins and payload codecs.                          |
-| `server/api/`                      | Same-origin backend forwarding boundary.                                                   |
-| `src/pages/`                       | Nuxt file-based route pages.                                                               |
-| `src/features/`                    | Account and transaction components/queries, recent activity and demo reset.                |
-| `src/contracts/`                   | Shared API/query types and the public banking client interface; no implementation imports. |
-| `src/domain/`                      | Banking entities, money, masking and pure transfer rules.                                  |
-| `src/use-cases/`                   | Repository contract, customer scoping and transaction queries.                             |
-| `src/data/`                        | HTTP client, MSW handlers, seed, persistence validation and IndexedDB adapter.             |
-| `src/shared/`                      | Theme, async states, money display and masked account numbers.                             |
-| `src/tests/`                       | Domain, data/API and component tests.                                                      |
-| `docs/adr/`                        | Architecture decision records.                                                             |
+## Project Structure
+
+| Directory                          | Responsibility                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `src/app.vue`, `src/app.config.ts` | Nuxt root and UI theme configuration.                                                         |
+| `src/app/config/`                  | Validated runtime configuration.                                                              |
+| `src/layouts/`, `src/plugins/`     | Nuxt layout, request-scoped API/query plugins and payload codecs.                             |
+| `server/api/`                      | Same-origin backend forwarding boundary.                                                      |
+| `src/pages/`                       | Nuxt file-based route pages.                                                                  |
+| `src/features/`                    | Account, transaction and transfer UI/queries, recent activity and demo reset.                 |
+| `src/contracts/`                   | Shared API/query types and the public banking client interface; no implementation imports.    |
+| `src/domain/`                      | Banking entities, money, masking and pure transfer rules.                                     |
+| `src/use-cases/`                   | Repository contract, customer scoping, transaction queries and atomic transfer orchestration. |
+| `src/data/`                        | HTTP client, MSW handlers, seed, persistence validation and IndexedDB adapter.                |
+| `src/shared/`                      | Theme, async states, money display and masked account numbers.                                |
+| `src/tests/`                       | Domain, data/API and component tests.                                                         |
+| `docs/adr/`                        | Architecture decision records.                                                                |
 
 MSW translates HTTP requests and responses. Use cases own customer scoping and filtering. Vue components do not import repositories or seed data. Domain code is independent of Vue, HTTP and persistence. ESLint checks these import boundaries.
 
@@ -113,11 +120,23 @@ The seed contains one fictional customer, three owned accounts (active checking,
 | TransferDestination | An owned account, an internal recipient account with a recipient snapshot, or an external recipient snapshot.                                                                             |
 | Transfer            | ID, idempotency key, request hash, source, destination, amount, currency, reference, status and timestamps. Completed transfers retain the request fingerprint and recipient destination. |
 
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ACCOUNT : owns
+    CUSTOMER ||--o{ BENEFICIARY : saves
+    ACCOUNT ||--o{ TRANSACTION : contains
+    ACCOUNT ||--o{ TRANSFER : sends
+    TRANSFER o|--|{ TRANSACTION : produces
+    ACCOUNT o|--o{ BENEFICIARY : may_resolve_to
+```
+
+The diagram shows the demo's current customer and its account ownership projection. Hidden recipient accounts have owner IDs outside that customer. A transfer destination is either an account reference or an immutable recipient snapshot; historical transfers do not depend on a beneficiary's current name. Non-transfer card/cash/fee/interest activity has no transfer ID. The persisted snapshot includes hidden accounts, but customer API projections exclude them.
+
 Money uses safe integer minor units: `$10.50` is `1050` cents. Transaction direction supplies the debit/credit sign. Aggregate balances use BigInt, and formatting preserves exact cents. Account numbers are masked in the visible UI.
 
 Seed balances reconcile to fixed opening balances plus completed activity. Pending and failed entries do not change balances. Total balance includes frozen accounts; active and frozen balances are shown separately. There is no holds or overdraft model.
 
-## Mock API
+## Mock API and Persistence
 
 | Method | Endpoint                     | Response                                            |
 | ------ | ---------------------------- | --------------------------------------------------- |
@@ -134,6 +153,14 @@ Transaction queries accept `accountId`, `query`, `direction`, `type`, `status`, 
 
 The client passes cancellation signals to fetch and surfaces structured API errors. In demo mode, MSW starts after hydration and before API queries are enabled. Unhandled `/api/` requests fail visibly. Successful response types are trusted contracts of the controlled mock API, not independently validated client payloads.
 
+### Persistence
+
+The IndexedDB database `raksul-bank` stores one versioned snapshot in object store `banking-state`, key `current`. It includes the customer, accounts, transactions, transfers and beneficiaries. Zod validates its structure and relationships.
+
+The repository initializes missing data and recovers structurally invalid or incompatible snapshots to the seed. Read/open failures surface without resetting data. Write failures and transaction aborts preserve the previous committed state. A newer database version produces an open error instead of being deleted.
+
+`load()`, `update(change)` and `reset()` are asynchronous. An update reads the latest snapshot and applies a synchronous callback within one IndexedDB readwrite transaction; it resolves only after commit. Power-loss durability and storage retention depend on the browser; users can edit or clear local data. The callback must use that snapshot for checks and must not perform network or storage side effects. IndexedDB serializes these transactions across connections to the same object store.
+
 ## Transaction Explorer
 
 Open Transactions to browse activity, newest first. Search matches descriptions, counterparties and transaction IDs. Combine it with account, direction, type, status and date filters, then select **Apply filters**. **Clear filters** restores all activity. Frozen accounts remain available for reviewing past activity.
@@ -142,17 +169,21 @@ Applied filters and pagination live in the URL; refreshing, sharing the link and
 
 The page distinguishes initial loading, API errors with retry, an empty dataset, no matching results and an out-of-range page. Invalid URL values require correction before fetching transactions. Desktop uses a table; smaller screens use stacked activity rows with signed, right-aligned amounts and explicit direction/status labels.
 
-## Persistence and State
+## State Management
 
-The IndexedDB database `raksul-bank` stores one versioned snapshot in object store `banking-state`, key `current`. It includes the customer, accounts, transactions, transfers and beneficiaries. Zod validates its structure and relationships.
-
-The repository initializes missing data and recovers structurally invalid or incompatible snapshots to the seed. Read/open failures surface without resetting data. Write failures and transaction aborts preserve the previous committed state. A newer database version produces an open error instead of being deleted.
-
-`load()`, `update(change)` and `reset()` are asynchronous. An update reads the latest snapshot and applies a synchronous callback within one IndexedDB readwrite transaction; it resolves only after commit. The callback must use that snapshot for checks and must not perform network or storage side effects. IndexedDB serializes these transactions across connections to the same object store.
+Applied transaction filters and pagination belong to Vue Router query parameters. Unapplied filters, transfer drafts and the current transfer stage are local Vue state; UForm and Zod handle form validation. There is no Pinia store or duplicate authoritative account cache.
 
 TanStack Vue Query manages API state with a 30-second stale time, one query retry and no mutation retries. Reset cancels in-flight banking queries, awaits persistence and invalidates the cache. Other tabs still need to refetch; there is no push synchronization or cross-device persistence.
 
 ## Transfer Semantics
+
+| Destination                          | Source balance  | Destination balance               | Resulting activity                                                    |
+| ------------------------------------ | --------------- | --------------------------------- | --------------------------------------------------------------------- |
+| My own active account                | Debited         | Credited                          | Two entries sharing one transfer ID                                   |
+| Saved internal recipient             | Debited         | Hidden recipient account credited | Linked debit/credit; only the owned debit is visible to this customer |
+| Saved external recipient             | Debited         | Outside this system               | One source debit and a stored recipient snapshot                      |
+| Rejected validation or aborted write | Unchanged       | Unchanged                         | No new transfer or activity                                           |
+| Same idempotency key and payload     | No second debit | No second credit                  | Original result is returned                                           |
 
 Open **Transfer**, choose an active source, then **My accounts** or **Someone else**. Select a destination or saved beneficiary, enter a plain USD decimal amount and an optional reference (up to 140 characters), then select **Review transfer**. Review displays masked account numbers, recipient/bank, balance, currency, amount and reference. Only **Confirm transfer** submits a payment. The receipt shows the committed transfer ID and UTC completion time, with links to activity and accounts.
 
@@ -163,6 +194,14 @@ Own-account and saved internal-recipient transfers debit the source, credit the 
 `POST /api/transfers` accepts `idempotencyKey`, `sourceAccountId`, `destination`, `amountMinor`, `currency: "USD"` and optional `reference`. Destination is `{ kind: "OWN_ACCOUNT", accountId }` or `{ kind: "BENEFICIARY", beneficiaryId }`; recipient snapshots are resolved by the use case. The key is a nonblank string of at most 128 characters. Requests reject unknown fields, unsafe/fractional minor units and unavailable accounts/recipients. Responses omit the stored key and fingerprint. Invalid payloads return 400, domain validation 422, key conflicts 409, missing receipts 404 and storage failures 503.
 
 The mutation never automatically retries. Confirmation is guarded against double clicks, and successful completion invalidates account/activity caches. A definite validation rejection explains that no money moved and refreshes the available balance. Network, storage or ambiguous errors do not claim failure or success: review retains the exact request/key for an explicit safe retry, blocks in-app navigation and warns before unloading. Keep that page open until the outcome is resolved. Drafts and retry keys are held in memory; forcibly closing/reloading discards them. Committed balances/activity persist across reloads, and receipts remain retrievable through the API. A production integration needs durable pending-request recovery and backend-enforced idempotency/authorization.
+
+## Assumptions and Engineering Notes
+
+- The demo assumes one already authenticated fictional customer. It implements no login or server-side authorization; masking is presentation only, and full fictional numbers remain in API/storage data.
+- Transfers use USD, execute within one request and await storage commit. There are no fees, exchange rates, holds, overdraft or asynchronous settlement. External destination balances are outside this system.
+- Safe integer cents are authoritative; BigInt is used for aggregate display. Decimal text is parsed without floating-point rounding.
+- IndexedDB gives atomic, serialized local updates. It provides neither cross-device persistence nor automatic cross-tab UI synchronization. Browser retention and durability are not production database guarantees.
+- The backend bridge forwards the request context but does not implement session lifecycle, authorization or payment processing. A real backend must enforce ownership, idempotency and transactional consistency.
 
 ## Testing
 
@@ -176,8 +215,14 @@ Manual browser checks cover desktop/tablet/mobile layouts, navigation, reset, na
 
 ## Known Limitations
 
-Architecture decision records are not yet written. The transfer form supports saved beneficiaries; adding recipients and durable recovery of an interrupted draft are outside this demo. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
+The transfer form supports saved beneficiaries; adding recipients and durable recovery of an interrupted draft are outside this demo. IndexedDB data is user-editable and subject to browser storage retention limits; the ownership projection in the mock API is demo scoping, not server-side authorization.
 
 ## Production Considerations
 
 A production banking system would require server-side authentication/authorization, transactional persistence, auditability, backups and real payment integration. The browser demo does not provide those guarantees.
+
+## Architecture Decision Records
+
+- [001 — Feature-oriented Vue architecture and state management](docs/adr/001-feature-oriented-vue-architecture.md)
+- [002 — Mock HTTP boundary and demo persistence](docs/adr/002-mock-http-boundary-and-demo-persistence.md)
+- [003 — Money representation and transfer consistency](docs/adr/003-money-and-transfer-consistency.md)
