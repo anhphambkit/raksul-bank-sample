@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
 onBeforeRouteLeave(() => !(submitting || waitingToConfirm.value || failure.value?.uncertain))
 </script>
 <template>
-  <section aria-labelledby="transfer-title" class="mx-auto max-w-5xl space-y-5 py-1 sm:py-2">
+  <section aria-labelledby="transfer-title" class="min-w-0 space-y-5 py-2 sm:py-3">
     <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <div class="mb-1 flex items-center gap-2">

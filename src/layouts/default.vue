@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from '#app'
 import type { NavigationMenuItem } from '@nuxt/ui'
-import UBadge from '@nuxt/ui/components/Badge.vue'
 import UButton from '@nuxt/ui/components/Button.vue'
 import UDashboardGroup from '@nuxt/ui/components/DashboardGroup.vue'
 import UDashboardNavbar from '@nuxt/ui/components/DashboardNavbar.vue'
@@ -10,9 +9,6 @@ import UDashboardPanel from '@nuxt/ui/components/DashboardPanel.vue'
 import UDashboardSidebar from '@nuxt/ui/components/DashboardSidebar.vue'
 import UNavigationMenu from '@nuxt/ui/components/NavigationMenu.vue'
 
-import { useBankingContext } from '@/data/api/bankingContext'
-
-const { mocksEnabled } = useBankingContext()
 const route = useRoute()
 const sidebarOpen = ref(false)
 const mainContent = ref<HTMLElement>()
@@ -128,24 +124,6 @@ watch(
           linkLeadingIcon: 'size-5',
         }"
       />
-
-      <template #footer>
-        <div class="flex items-start gap-3">
-          <UIcon
-            name="i-lucide-flask-conical"
-            class="mt-0.5 size-5 shrink-0 text-muted"
-            aria-hidden="true"
-          />
-          <div>
-            <p class="text-sm font-medium text-toned">
-              {{ mocksEnabled ? 'Demo environment' : 'Banking preview' }}
-            </p>
-            <p v-if="mocksEnabled" class="mt-1 text-xs leading-5 text-muted">
-              For demonstration only.
-            </p>
-          </div>
-        </div>
-      </template>
     </UDashboardSidebar>
 
     <UDashboardPanel :ui="{ root: 'bg-[var(--bank-canvas)]', body: 'overflow-hidden p-0 sm:p-0' }">
@@ -180,13 +158,6 @@ watch(
               <UColorModeButton />
               <template #fallback><span class="size-8" aria-hidden="true" /></template>
             </ClientOnly>
-            <UBadge
-              color="primary"
-              variant="soft"
-              class="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-            >
-              Preview
-            </UBadge>
           </template>
         </UDashboardNavbar>
       </template>
