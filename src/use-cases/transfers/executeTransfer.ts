@@ -3,6 +3,7 @@ import { DomainError } from '../../domain/errors'
 import { creditBalance, debitBalance } from '../../domain/money/money'
 import type { Transfer, TransferDestination } from '../../domain/transfers/transfer'
 import { validateTransfer } from '../../domain/transfers/validateTransfer'
+import { saveBeneficiary } from '../beneficiaries/createBeneficiary'
 import type { BankingRepository } from '../ports/BankingRepository'
 
 export class TransferError extends Error {
@@ -35,7 +36,14 @@ export async function executeTransfer(
     request.destination.kind,
     request.destination.kind === 'OWN_ACCOUNT'
       ? request.destination.accountId
-      : request.destination.beneficiaryId,
+      : request.destination.kind === 'BENEFICIARY'
+        ? request.destination.beneficiaryId
+        : [
+            request.destination.beneficiary.displayName.trim(),
+            request.destination.beneficiary.bankName.trim().toLowerCase(),
+            request.destination.beneficiary.accountNumber.trim(),
+            request.destination.beneficiary.currency,
+          ],
     request.amountMinor,
     request.currency,
     request.reference ?? '',
@@ -45,6 +53,7 @@ export async function executeTransfer(
     byte.toString(16).padStart(2, '0'),
   ).join('')
   const transferId = `transfer-${crypto.randomUUID()}`
+  const beneficiaryId = `beneficiary-${crypto.randomUUID()}`
   let resultId = transferId
   const committed = await repository.update((state) => {
     const previous = state.transfers.find(
@@ -65,10 +74,15 @@ export async function executeTransfer(
     if (request.destination.kind === 'OWN_ACCOUNT') {
       destination = { ...request.destination }
     } else {
-      const beneficiaryId = request.destination.beneficiaryId
-      const beneficiary = state.beneficiaries.find(
-        (item) => item.id === beneficiaryId && item.customerId === state.customer.id,
-      )
+      const requestedBeneficiary = request.destination
+      const beneficiary =
+        requestedBeneficiary.kind === 'NEW_BENEFICIARY'
+          ? saveBeneficiary(state, requestedBeneficiary.beneficiary, beneficiaryId)
+          : state.beneficiaries.find(
+              (item) =>
+                item.id === requestedBeneficiary.beneficiaryId &&
+                item.customerId === state.customer.id,
+            )
       if (!beneficiary) throw new DomainError('INVALID_RECIPIENT', 'Choose an available recipient.')
       if (beneficiary.currency !== request.currency)
         throw new DomainError('CURRENCY_MISMATCH', 'The recipient must use the transfer currency.')

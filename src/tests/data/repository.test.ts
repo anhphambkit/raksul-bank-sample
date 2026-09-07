@@ -1,15 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { selectCustomerAccounts } from '../../use-cases/accounts/selectCustomerAccounts'
-import type { PersistedBankingState } from '../../use-cases/ports/BankingRepository'
+import type { BankingState } from '../../use-cases/ports/BankingRepository'
 import {
   BANKING_DATABASE_NAME,
   BANKING_OBJECT_STORE,
   BANKING_STATE_KEY,
   createIndexedDbBankingRepository,
 } from '../../data/repositories/indexedDbBankingRepository'
-import { bankingStateSchema } from '../../data/repositories/bankingStateSchema'
+import { persistedBankingStateSchema } from '../../data/repositories/bankingStateSchema'
 import { createSeedState, SEED_OPENING_BALANCES } from '../../data/seed/createSeedState'
+
+const persisted = (state: BankingState) => ({ ...state, schemaVersion: 1 as const })
 
 function fixture() {
   const factory = new IDBFactory()
@@ -61,7 +63,7 @@ describe('deterministic banking seed', () => {
 
   it('has the requested shape, variety and valid references', () => {
     const state = createSeedState()
-    expect(bankingStateSchema.safeParse(state).success).toBe(true)
+    expect(persistedBankingStateSchema.safeParse(persisted(state)).success).toBe(true)
     expect(state.accounts).toHaveLength(5)
     expect(state.beneficiaries).toHaveLength(6)
     expect(state.transactions).toHaveLength(100)
@@ -146,7 +148,7 @@ describe('IndexedDB repository', () => {
     const loaded = await repository.load()
     loaded.accounts[0]!.displayName = 'Unsaved'
     expect((await repository.load()).accounts[0]!.displayName).toBe('Everyday Checking')
-    let callbackState: PersistedBankingState | undefined
+    let callbackState: BankingState | undefined
     const saved = await repository.update((current) => {
       callbackState = current
       current.accounts[0]!.displayName = 'Saved'
@@ -163,7 +165,7 @@ describe('IndexedDB repository', () => {
       const { repository, raw } = fixture()
       await raw('write', value)
       expect(await repository.load()).toEqual(createSeedState())
-      expect(await raw('read')).toEqual(createSeedState())
+      expect(await raw('read')).toEqual(persisted(createSeedState()))
     },
   )
 
@@ -175,9 +177,9 @@ describe('IndexedDB repository', () => {
       current.accounts[0]!.displayName = 'Changed'
       return current
     })
-    expect(await repository.reset()).toEqual(original)
+    expect(await repository.reset()).toEqual(createSeedState())
     expect(await raw('read')).toEqual(original)
-    expect(await repository.reset()).toEqual(original)
+    expect(await repository.reset()).toEqual(createSeedState())
   })
 
   it('does not lose concurrent changes from independent connections', async () => {
@@ -243,7 +245,7 @@ describe('IndexedDB repository', () => {
         throw failure
       }),
     ).rejects.toBe(failure)
-    expect(await raw('read')).toEqual(before)
+    expect(await raw('read')).toEqual(persisted(before))
   })
 
   it('rejects an async callback before writing', async () => {
@@ -254,7 +256,7 @@ describe('IndexedDB repository', () => {
     await expect(repository.update(async (current) => current)).rejects.toMatchObject({
       code: 'INVALID_STATE',
     })
-    expect(await raw('read')).toEqual(before)
+    expect(await raw('read')).toEqual(persisted(before))
   })
 
   it('surfaces an unavailable factory without falling back to another store', async () => {
@@ -308,7 +310,7 @@ describe('IndexedDB repository', () => {
     await expect(repository.load()).rejects.toMatchObject({ code: 'STORAGE_READ_FAILED' })
     expect(put).not.toHaveBeenCalled()
     get.mockRestore()
-    expect(await raw('read')).toEqual(before)
+    expect(await raw('read')).toEqual(persisted(before))
   })
 
   it.each(['update', 'reset'] as const)(
@@ -331,7 +333,7 @@ describe('IndexedDB repository', () => {
             }),
       ).rejects.toMatchObject({ code: 'STORAGE_WRITE_FAILED' })
       put.mockRestore()
-      expect(await raw('read')).toEqual(before)
+      expect(await raw('read')).toEqual(persisted(before))
     },
   )
 
@@ -354,7 +356,7 @@ describe('IndexedDB repository', () => {
       }),
     ).rejects.toMatchObject({ code: 'STORAGE_WRITE_FAILED' })
     put.mockRestore()
-    expect(await raw('read')).toEqual(before)
+    expect(await raw('read')).toEqual(persisted(before))
   })
 
   it.each([undefined, '{broken'])(
@@ -396,7 +398,7 @@ describe('IndexedDB repository', () => {
     })
     await expect(repository.load()).rejects.toMatchObject({ code: 'STORAGE_OPEN_FAILED' })
   })
-  const invalidStates: [string, (state: PersistedBankingState) => void][] = [
+  const invalidStates: [string, (state: BankingState) => void][] = [
     [
       'negative balance',
       (state) => {
@@ -494,7 +496,7 @@ describe('IndexedDB repository', () => {
         }),
       ).rejects.toMatchObject({ code: 'INVALID_STATE' })
       expect(put).not.toHaveBeenCalled()
-      expect(await raw('read')).toEqual(before)
+      expect(await raw('read')).toEqual(persisted(before))
       const invalid = structuredClone(before)
       mutate(invalid)
       await raw('write', invalid)

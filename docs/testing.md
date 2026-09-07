@@ -90,7 +90,7 @@ Add a separate Playwright configuration/environment for the real test backend wi
 
 ## Optional enhancement suites
 
-`src/tests/data/createBeneficiary.test.ts` covers atomic recipient deduplication, new-recipient transfer, internal resolution and invalid requests. `src/tests/ui/transferRecovery.test.ts` covers exact request/key retention, unresolved-record protection and corrupt/unavailable storage.
+`src/tests/data/createBeneficiary.test.ts` covers atomic recipient deduplication, internal resolution and invalid requests. `executeTransfer.test.ts` verifies that a new recipient and transfer commit together and both roll back on transfer validation failure. `transferDetails.test.ts` verifies that Review only prepares a `NEW_BENEFICIARY` request. `src/tests/ui/transferRecovery.test.ts` covers exact request/key retention, unresolved-record protection and corrupt/unavailable storage.
 
 `scripts/e2e/enhancements.spec.mjs` covers theme persistence/keyboard toggle, adding and selecting a new recipient through the UI, draft restoration and same-key replay after a simulated committed response loss/page close, plus automatic balance refresh/reset in a second tab.
 

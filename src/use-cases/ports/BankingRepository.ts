@@ -4,8 +4,8 @@ import type { Customer } from '../../domain/customers/customer'
 import type { Transaction } from '../../domain/transactions/transaction'
 import type { Transfer } from '../../domain/transfers/transfer'
 
-export interface PersistedBankingState {
-  schemaVersion: 1
+/** Application state used by banking use cases. Persistence metadata belongs to adapters. */
+export interface BankingState {
   customer: Customer
   accounts: Account[]
   transactions: Transaction[]
@@ -17,15 +17,13 @@ export interface PersistedBankingState {
  * Never return a complete snapshot from customer-facing HTTP handlers.
  */
 export interface BankingRepository {
-  load(): Promise<PersistedBankingState>
+  load(): Promise<BankingState>
   /** Read, validate and update in one transaction. The callback must be synchronous,
    * use the supplied current snapshot, and perform no network/storage side effects.
    * Resolve only after commit; thrown errors abort the entire update.
    */
-  update(
-    change: (current: PersistedBankingState) => PersistedBankingState,
-  ): Promise<PersistedBankingState>
-  reset(): Promise<PersistedBankingState>
+  update(change: (current: BankingState) => BankingState): Promise<BankingState>
+  reset(): Promise<BankingState>
 }
 
 export class RepositoryError extends Error {

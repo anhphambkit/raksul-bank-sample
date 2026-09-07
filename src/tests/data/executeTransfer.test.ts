@@ -23,6 +23,15 @@ beforeEach(() => {
 })
 
 describe('atomic transfer execution', () => {
+  const newBeneficiary = {
+    kind: 'NEW_BENEFICIARY' as const,
+    beneficiary: {
+      displayName: 'New Recipient',
+      bankName: 'Techcombank',
+      accountNumber: '987654321012',
+      currency: 'USD' as const,
+    },
+  }
   it.each([
     [{ kind: 'OWN_ACCOUNT', accountId: 'account-savings' }, 'account-savings', 2],
     [{ kind: 'BENEFICIARY', beneficiaryId: 'beneficiary-alex' }, 'account-internal-alex', 2],
@@ -65,6 +74,31 @@ describe('atomic transfer execution', () => {
       expect(await repository.load()).toEqual(createSeedState())
     },
   )
+
+  it('creates a new recipient and transfer in the same committed update', async () => {
+    const before = await repository.load()
+    const update = vi.spyOn(repository, 'update')
+    const transfer = await executeTransfer(repository, request({ destination: newBeneficiary }))
+    const after = await repository.load()
+    expect(update).toHaveBeenCalledOnce()
+    expect(after.beneficiaries).toHaveLength(before.beneficiaries.length + 1)
+    expect(after.beneficiaries.at(-1)).toMatchObject(newBeneficiary.beneficiary)
+    expect(transfer.destination).toMatchObject({
+      kind: 'EXTERNAL_ACCOUNT',
+      recipientSnapshot: { name: 'New Recipient', accountNumber: '987654321012' },
+    })
+  })
+
+  it('does not save a new recipient when transfer validation fails', async () => {
+    const before = await repository.load()
+    await expect(
+      executeTransfer(
+        repository,
+        request({ destination: newBeneficiary, sourceAccountId: 'account-frozen' }),
+      ),
+    ).rejects.toMatchObject({ code: 'SOURCE_NOT_ACTIVE' })
+    expect(await repository.load()).toEqual(before)
+  })
 
   it.each([
     [{ amountMinor: 0 }, 'INVALID_AMOUNT'],

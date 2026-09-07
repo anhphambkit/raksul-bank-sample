@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { TransferRequest } from '../../contracts/transfers'
+import { beneficiaryRequestSchema } from './beneficiaryRequestSchema'
 
 const id = z
   .string()
@@ -12,6 +13,10 @@ export const transferRequestSchema = z.strictObject({
   destination: z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('OWN_ACCOUNT'), accountId: id }),
     z.strictObject({ kind: z.literal('BENEFICIARY'), beneficiaryId: id }),
+    z.strictObject({
+      kind: z.literal('NEW_BENEFICIARY'),
+      beneficiary: beneficiaryRequestSchema,
+    }),
   ]),
   amountMinor: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
   currency: z.literal('USD'),

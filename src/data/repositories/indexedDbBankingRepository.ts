@@ -2,22 +2,31 @@ import { publishBankingChange } from '../sync/bankingChanges'
 import {
   RepositoryError,
   type BankingRepository,
-  type PersistedBankingState,
+  type BankingState,
 } from '../../use-cases/ports/BankingRepository'
 import { createSeedState } from '../seed/createSeedState'
-import { bankingStateSchema } from './bankingStateSchema'
+import { persistedBankingStateSchema, type PersistedBankingState } from './bankingStateSchema'
 
 export const BANKING_DATABASE_NAME = 'raksul-bank'
 export const BANKING_DATABASE_VERSION = 1
 export const BANKING_OBJECT_STORE = 'banking-state'
 export const BANKING_STATE_KEY = 'current'
 
-function validateState(value: unknown): PersistedBankingState {
-  const parsed = bankingStateSchema.safeParse(value)
+function toBankingState(value: PersistedBankingState): BankingState {
+  const { schemaVersion: _version, ...state } = value
+  void _version
+  return state
+}
+
+function validateState(value: unknown): { state: BankingState; persisted: PersistedBankingState } {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || 'schemaVersion' in value) {
+    throw new RepositoryError('INVALID_STATE', 'The banking state is invalid; nothing was saved.')
+  }
+  const parsed = persistedBankingStateSchema.safeParse({ ...value, schemaVersion: 1 })
   if (!parsed.success) {
     throw new RepositoryError('INVALID_STATE', 'The banking state is invalid; nothing was saved.')
   }
-  return parsed.data
+  return { state: toBankingState(parsed.data), persisted: parsed.data }
 }
 
 /** Lazy browser access also allows importing this module in Node without IndexedDB. */
@@ -78,14 +87,14 @@ export function createIndexedDbBankingRepository(
 
   async function transact(
     mode: 'load' | 'update' | 'reset',
-    change?: (current: PersistedBankingState) => PersistedBankingState,
-  ): Promise<PersistedBankingState> {
+    change?: (current: BankingState) => BankingState,
+  ): Promise<BankingState> {
     const database = await openDatabase()
     try {
-      return await new Promise<PersistedBankingState>((resolve, reject) => {
+      return await new Promise<BankingState>((resolve, reject) => {
         let transaction: IDBTransaction
         let failure: unknown
-        let result: PersistedBankingState
+        let result: BankingState
         let phase: 'read' | 'write' = mode === 'reset' ? 'write' : 'read'
         const storageError = () =>
           new RepositoryError(
@@ -113,10 +122,11 @@ export function createIndexedDbBankingRepository(
         }
         const store = transaction.objectStore(BANKING_OBJECT_STORE)
         const persist = (next: unknown) => {
-          result = validateState(next)
+          const validated = validateState(next)
+          result = validated.state
           phase = 'write'
           try {
-            store.put(result, BANKING_STATE_KEY)
+            store.put(validated.persisted, BANKING_STATE_KEY)
           } catch {
             abort(storageError())
           }
@@ -140,8 +150,8 @@ export function createIndexedDbBankingRepository(
         // data permits recovery; access/I/O errors never trigger a reset.
         request.onsuccess = () => {
           try {
-            const parsed = bankingStateSchema.safeParse(request.result)
-            const current = parsed.success ? parsed.data : createSeedState()
+            const parsed = persistedBankingStateSchema.safeParse(request.result)
+            const current = parsed.success ? toBankingState(parsed.data) : createSeedState()
             if (change) {
               // Invoke synchronously while IndexedDB's request event is active.
               // Returning a Promise also fails runtime state validation.

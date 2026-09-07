@@ -85,7 +85,14 @@ export function prepareTransfer(
   const valid = transferDetailsSchema(accounts, beneficiaries).parse(details)
   const source = accounts.find((account) => account.id === valid.sourceAccountId)!
   const target = accounts.find((account) => account.id === valid.destinationId)
-  const beneficiary = beneficiaries.find((item) => item.id === valid.destinationId)
+  const beneficiary =
+    beneficiaries.find((item) => item.id === valid.destinationId) ??
+    beneficiaries.find(
+      (item) =>
+        !item.internalAccountId &&
+        item.accountNumber === valid.recipientAccountId.trim() &&
+        item.bankName.toLowerCase() === valid.bankName.trim().toLowerCase(),
+    )
   return {
     details: { ...valid },
     source: { ...source },
@@ -96,18 +103,34 @@ export function prepareTransfer(
             bankName: 'Raksul-bank',
             accountNumber: target!.accountNumber,
           }
-        : {
-            name: beneficiary!.displayName,
-            bankName: beneficiary!.bankName,
-            accountNumber: beneficiary!.accountNumber,
-          },
+        : beneficiary
+          ? {
+              name: beneficiary.displayName,
+              bankName: beneficiary.bankName,
+              accountNumber: beneficiary.accountNumber,
+            }
+          : {
+              name: valid.recipientName.trim(),
+              bankName: valid.bankName.trim(),
+              accountNumber: valid.recipientAccountId.trim(),
+            },
     request: {
       idempotencyKey: crypto.randomUUID(),
       sourceAccountId: source.id,
       destination:
         valid.recipientType === 'OWN_ACCOUNT'
           ? { kind: 'OWN_ACCOUNT', accountId: valid.destinationId }
-          : { kind: 'BENEFICIARY', beneficiaryId: valid.destinationId },
+          : beneficiary
+            ? { kind: 'BENEFICIARY', beneficiaryId: beneficiary.id }
+            : {
+                kind: 'NEW_BENEFICIARY',
+                beneficiary: {
+                  displayName: valid.recipientName.trim(),
+                  bankName: valid.bankName.trim(),
+                  accountNumber: valid.recipientAccountId.trim(),
+                  currency: 'USD',
+                },
+              },
       amountMinor: decimalToMinor(valid.amount),
       currency: source.currency,
       ...(valid.reference.trim() ? { reference: valid.reference.trim() } : {}),

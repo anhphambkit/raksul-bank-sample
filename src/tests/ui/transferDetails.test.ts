@@ -186,4 +186,28 @@ describe('transfer details', () => {
     })
     expect(draft.recipient).toMatchObject({ name: 'Alex Rivera', bankName: 'Raksul-bank' })
   })
+  it('keeps a new external recipient inside the review request without saving it', () => {
+    const draft = prepareTransfer(
+      {
+        ...details,
+        recipientType: 'BENEFICIARY',
+        recipientNetwork: 'OTHER_BANK',
+        recipientAccountId: '987654321012',
+        recipientName: 'New Recipient',
+        bankName: 'Techcombank',
+      },
+      accounts,
+      seed.beneficiaries,
+    )
+    expect(draft.request.destination).toEqual({
+      kind: 'NEW_BENEFICIARY',
+      beneficiary: {
+        displayName: 'New Recipient',
+        bankName: 'Techcombank',
+        accountNumber: '987654321012',
+        currency: 'USD',
+      },
+    })
+    expect(seed.beneficiaries).toHaveLength(6)
+  })
 })

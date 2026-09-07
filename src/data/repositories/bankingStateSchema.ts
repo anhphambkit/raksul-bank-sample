@@ -1,5 +1,7 @@
 import { z } from 'zod'
-import type { PersistedBankingState } from '../../use-cases/ports/BankingRepository'
+import type { BankingState } from '../../use-cases/ports/BankingRepository'
+
+export type PersistedBankingState = BankingState & { schemaVersion: 1 }
 
 const text = z.string().refine((value) => value.trim().length > 0)
 const timestamp = z.iso.datetime()
@@ -8,7 +10,7 @@ const balance = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
 const amount = balance.min(1)
 const recipient = z.strictObject({ name: text, bankName: text, accountNumber: text })
 
-export const bankingStateSchema = z
+export const persistedBankingStateSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
     customer: z.strictObject({ id: text, firstName: text, lastName: text, displayName: text }),

@@ -1,4 +1,4 @@
-import type { PersistedBankingState } from '../../use-cases/ports/BankingRepository'
+import type { BankingState } from '../../use-cases/ports/BankingRepository'
 import type { Account } from '../../domain/accounts/account'
 import type { Transaction } from '../../domain/transactions/transaction'
 import { creditBalance, debitBalance } from '../../domain/money/money'
@@ -12,7 +12,7 @@ export const SEED_OPENING_BALANCES: Readonly<Record<string, number>> = Object.fr
 })
 
 /** Fixed fictional fixture; returns fresh objects and never reads the clock or storage. */
-export function createSeedState(): PersistedBankingState {
+export function createSeedState(): BankingState {
   const customer = {
     id: 'customer-taylor',
     firstName: 'Taylor',
@@ -37,8 +37,7 @@ export function createSeedState(): PersistedBankingState {
     balanceMinor: SEED_OPENING_BALANCES[id] ?? 0,
     createdAt: '2025-01-15T09:00:00.000Z',
   })
-  const state: PersistedBankingState = {
-    schemaVersion: 1,
+  const state: BankingState = {
     customer,
     accounts: [
       account('account-checking', customer.id, 'Everyday Checking', 'CHECKING', '100000004821'),

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { useQueryClient } from '@tanstack/vue-query'
 import UForm from '@nuxt/ui/components/Form.vue'
 import UFormField from '@nuxt/ui/components/FormField.vue'
 import USelect from '@nuxt/ui/components/Select.vue'
@@ -11,7 +10,6 @@ import UIcon from '@nuxt/ui/components/Icon.vue'
 import type { Account } from '@/domain/accounts/account'
 import type { Beneficiary } from '@/domain/beneficiaries/beneficiary'
 import { maskAccountNumber } from '@/domain/accounts/maskAccountNumber'
-import { useBankingContext } from '@/data/api/bankingContext'
 import MoneyInput from '@/shared/components/MoneyInput.vue'
 import MoneyDisplay from '@/shared/components/MoneyDisplay.vue'
 import {
@@ -27,10 +25,7 @@ const props = defineProps<{
   initial?: TransferDetails
 }>()
 const emit = defineEmits<{ review: [draft: TransferDraft]; change: [details: TransferDetails] }>()
-const { api } = useBankingContext()
-const queryClient = useQueryClient()
 const form = ref<{ clear(path?: string | RegExp): void }>()
-const submittingRecipient = ref(false)
 const recipientError = ref('')
 const checkedRecipient = ref<Beneficiary>()
 const banks = [
@@ -155,40 +150,9 @@ function checkAccount() {
   state.recipientName = recipient.displayName
 }
 
-async function review() {
-  if (submittingRecipient.value) return
+function review() {
   recipientError.value = ''
-  let recipients = props.beneficiaries
-  if (state.recipientType === 'BENEFICIARY' && state.recipientNetwork === 'OTHER_BANK') {
-    const external = props.beneficiaries.find(
-      (item) =>
-        !item.internalAccountId &&
-        item.accountNumber === state.recipientAccountId.trim() &&
-        item.bankName.toLowerCase() === state.bankName.trim().toLowerCase(),
-    )
-    try {
-      submittingRecipient.value = true
-      const recipient =
-        external ??
-        (await api.createBeneficiary({
-          displayName: state.recipientName.trim(),
-          bankName: state.bankName.trim(),
-          accountNumber: state.recipientAccountId.trim(),
-          currency: 'USD',
-        }))
-      state.destinationId = recipient.id
-      state.recipientName = recipient.displayName
-      recipients = external ? props.beneficiaries : [...props.beneficiaries, recipient]
-      if (!external) await queryClient.invalidateQueries({ queryKey: ['bank', 'beneficiaries'] })
-    } catch (error) {
-      recipientError.value =
-        error instanceof Error ? error.message : 'The recipient could not be saved. Try again.'
-      return
-    } finally {
-      submittingRecipient.value = false
-    }
-  }
-  emit('review', prepareTransfer({ ...state }, props.accounts, recipients))
+  emit('review', prepareTransfer({ ...state }, props.accounts, props.beneficiaries))
 }
 
 async function focusError(event: { errors: { id?: string }[] }) {
@@ -377,14 +341,7 @@ async function focusError(event: { errors: { id?: string }[] }) {
         <UIcon name="i-lucide-shield-check" class="size-4 text-primary" />
         Review before money moves
       </p>
-      <UButton
-        type="submit"
-        size="lg"
-        class="justify-center"
-        trailing-icon="i-lucide-arrow-right"
-        :loading="submittingRecipient"
-        :disabled="submittingRecipient"
-      >
+      <UButton type="submit" size="lg" class="justify-center" trailing-icon="i-lucide-arrow-right">
         Review transfer
       </UButton>
     </div>

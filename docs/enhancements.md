@@ -4,9 +4,9 @@ The optional follow-up adds recipients, transfer recovery, same-browser tab sync
 
 ## Add a recipient
 
-In Transfer, choose **Someone else → Add recipient**. Enter a name, bank and an 8–20 digit account number. Saving adds a USD beneficiary through `POST /api/beneficiaries`, invalidates the recipient query and selects the saved recipient. It does not send money. Review and Confirm remain separate steps.
+In Transfer, choose **Someone else**, then enter a name, bank and an 8–20 digit account number. Review performs no API mutation. The immutable transfer request carries a `NEW_BENEFICIARY` command, and Confirm saves the USD beneficiary together with the transfer in one repository transaction. A failed validation or aborted write leaves both transfers and beneficiaries unchanged.
 
-The use case normalizes whitespace, bounds names, rejects invalid account formats and deduplicates the same bank/account atomically, including concurrent saves. A known Raksul-bank account resolves to a hidden internal destination; own or frozen accounts and unknown Raksul-bank numbers are rejected. Other bank accounts are simulated external destinations: the number's format is validated, but external account existence/name is not verified. No recipient edit/delete directory was added. Reset restores the original saved recipients.
+The shared beneficiary operation normalizes whitespace, bounds names, rejects invalid account formats and deduplicates the same bank/account atomically, including concurrent saves and transfer confirmation. A known Raksul-bank account resolves to a hidden internal destination; own or frozen accounts and unknown Raksul-bank numbers are rejected. Other bank accounts are simulated external destinations: the number's format is validated, but external account existence/name is not verified. The standalone `POST /api/beneficiaries` contract remains available for an explicit future recipient-directory UI. No recipient edit/delete directory was added. Reset restores the original saved recipients.
 
 ## Restore an interrupted transfer
 
@@ -28,7 +28,7 @@ This does not synchronize different browser profiles, origins, browsers or physi
 
 The header theme button switches light/dark mode with a persisted Nuxt color-mode preference. Light is the initial default. The toggle renders after hydration; a fixed-size fallback reserves its space. Semantic surface/text tokens and dedicated dark variants cover tables, forms, navigation, balance summary, skeletons and indicators. Account-card contrast remains explicit.
 
-Storybook uses Vue/Vite and the same Nuxt UI plugin, colors and CSS as the app. Its theme toolbar changes the canvas between light and dark. Seven component groups declare their actual component, typed args and explicit Controls. Eleven stories cover MoneyDisplay, valid/invalid MoneyInput, active/frozen AccountCard, TransactionTable, TransferDetailsForm, TransferReview (normal/pending/uncertain) and TransferReceipt. Storybook runs its own browser MSW/IndexedDB on its origin for recipient saves. It is development tooling, not part of the Nitro deployment.
+Storybook uses Vue/Vite and the same Nuxt UI plugin, colors and CSS as the app. Its theme toolbar changes the canvas between light and dark. Seven component groups declare their actual component, typed args and explicit Controls. Eleven stories cover MoneyDisplay, valid/invalid MoneyInput, active/frozen AccountCard, TransactionTable, TransferDetailsForm, TransferReview (normal/pending/uncertain) and TransferReceipt. It is development tooling, not part of the Nitro deployment.
 
 ```sh
 npm run storybook

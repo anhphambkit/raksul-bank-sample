@@ -37,7 +37,7 @@ The original assignment defines acceptance. Suggested seed counts, filter dimens
 
 ### Nice-to-Have — completed
 
-- [x] Add/save recipients through HTTP with validation and atomic deduplication; selected immediately and persisted for transfers.
+- [x] Review new recipients without a write; confirmation atomically saves the recipient and transfer with validation and deduplication.
 - [x] Save and restore draft/review/immutable retry key after close/reload, with explicit same-key replay and storage-failure protection.
 - [x] Same-origin demo tabs refresh automatically after committed changes/reset; reset clears recovery context.
 - [x] Persistent light/dark mode with responsive theme styling and hydration-safe toggle.
@@ -85,7 +85,7 @@ No outstanding Core or required-deliverable defect was identified in this review
 
 The requested follow-up is documented in [enhancements](enhancements.md). Cross-device synchronization was subsequently deferred by the user. This extends the completed Core; it does not replace the original acceptance evidence below.
 
-- 238 unit/component tests across 17 files passed, including recipient creation and durable recovery guards.
+- 245 unit/component tests across 17 files passed, including atomic new-recipient transfer creation and durable recovery guards.
 - Strict typecheck, lint, formatting, Git whitespace check, production build and SSR smoke passed.
 - All 15 Chromium E2E tests passed, including recipient creation, close/reopen recovery and two-tab synchronization.
 - All four visual comparison tests passed against 12 committed baseline images.
