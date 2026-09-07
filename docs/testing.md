@@ -58,6 +58,8 @@ Playwright starts production Nuxt processes and the HTTP fixture on dynamically 
 
 All browser tests fail on uncaught page errors or logged hydration mismatches. Demo tests use the application's Service Worker, with no Playwright route mocks. The backend-mode test verifies no Service Worker was registered.
 
+`scripts/e2e/transaction-detail.spec.mjs` checks the transaction drawer in both Transactions and Recent activity at 1440/768/390px. It verifies linked transfer identity, masked accounts, keyboard opening, focus containment, Escape/Close and return focus, width containment, preserved URL and no additional banking requests when opening details.
+
 ## Cases that browser MSW alone cannot verify
 
 Browser MSW cannot intercept Nuxt's server-to-backend requests. These checks must exercise real Nuxt/Nitro against a backend, which can be the local HTTP fixture; a production backend is unnecessary.

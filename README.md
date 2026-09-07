@@ -8,6 +8,7 @@ A personal banking dashboard built with Nuxt 4, Vue 3 and TypeScript. It uses a 
 
 - Accounts and Overview with owned accounts, masked account numbers, USD balances, active/frozen status and recent activity.
 - Transaction explorer with text, account, direction, type, status and inclusive UTC date filters, API pagination and URL state.
+- Individual transaction details in a responsive drawer, available from Transactions and Recent activity.
 - Responsive navigation, keyboard focus management, loading/error/retry/empty states and confirmed demo reset.
 - Typed API client and MSW handlers for customer, accounts, transaction queries, beneficiaries and reset.
 - Deterministic seed data, validated persistence and atomic repository updates.
@@ -22,7 +23,7 @@ Real authentication, authorization, OTP/MFA, currency conversion, fees, schedule
 
 ## Technology Stack
 
-Nuxt 4 (SSR with Nitro), Vue 3, strict TypeScript, Nuxt file-based routing (Vue Router 5), Nuxt UI 4, Tailwind CSS 4, TanStack Vue Query, Zod, MSW and IndexedDB. Tests use Vitest, Vue Test Utils and fake-indexeddb.
+Nuxt 4 (SSR with Nitro), Vue 3, strict TypeScript, Nuxt file-based routing (Vue Router 5), Nuxt UI 4, Tailwind CSS 4, TanStack Vue Query, Zod, MSW and IndexedDB. Tests use Vitest, Vue Test Utils, fake-indexeddb and Playwright/Chromium.
 
 Dependencies are pinned in `package-lock.json`. Nuxt owns application startup, routing, layouts, head metadata and server rendering. Vite is used internally by Nuxt and separately for isolated component tests.
 
@@ -166,6 +167,8 @@ The repository initializes missing data and recovers structurally invalid or inc
 Open Transactions to browse activity, newest first. Search matches descriptions, counterparties and transaction IDs. Combine it with account, direction, type, status and date filters, then select **Apply filters**. **Clear filters** restores all activity. Frozen accounts remain available for reviewing past activity.
 
 Applied filters and pagination live in the URL; refreshing, sharing the link and Back/Forward restore that view. The form holds only unapplied edits. Applying filters or changing page size returns to page 1. The UI renders the API page directly without filtering or paginating a local copy of the dataset.
+
+Select a transaction description to open its details: full UTC timestamp, signed amount, direction, type, status, masked account, counterparty, description/reference and any transfer ID. The drawer uses the loaded activity, adds no API request, keeps keyboard focus inside, and returns focus to its trigger when closed with Escape or Close. It preserves the current filters/page; it is not a separate permalink or a stored running-balance view.
 
 The page distinguishes initial loading, API errors with retry, an empty dataset, no matching results and an out-of-range page. Invalid URL values require correction before fetching transactions. Desktop uses a table; smaller screens use stacked activity rows with signed, right-aligned amounts and explicit direction/status labels.
 

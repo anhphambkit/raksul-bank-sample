@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import TransactionStatusBadge from './TransactionStatusBadge.vue'
 import UIcon from '@nuxt/ui/components/Icon.vue'
 import UTable from '@nuxt/ui/components/Table.vue'
+import USlideover from '@nuxt/ui/components/Slideover.vue'
+import TransactionDetail from './TransactionDetail.vue'
 import { tv } from '@nuxt/ui/utils/tv'
 import type { TableColumn } from '@nuxt/ui'
 import type { Transaction } from '@/domain/transactions/transaction'
@@ -22,6 +24,25 @@ const props = withDefaults(
 )
 defineSlots<TransactionSlots>()
 const accountMap = computed(() => new Map(props.accounts.map((account) => [account.id, account])))
+const detailOpen = ref(false)
+const selected = ref<Transaction>()
+let detailTrigger: HTMLElement | undefined
+function openDetail(transaction: Transaction, event: MouseEvent) {
+  selected.value = { ...transaction }
+  detailTrigger = event.currentTarget as HTMLElement
+  detailOpen.value = true
+}
+function restoreFocus(event: Event) {
+  event.preventDefault()
+  if (detailTrigger?.isConnected) detailTrigger.focus({ preventScroll: true })
+}
+// A filter, page or refreshed result should not leave an outdated detail open.
+watch(
+  () => props.transactions,
+  () => {
+    detailOpen.value = false
+  },
+)
 function scope(
   transaction: Transaction,
   layout: TransactionItemScope['layout'],
@@ -117,7 +138,14 @@ const styles = computed(() => theme({ variant: props.variant }))
               />
             </span>
             <div class="min-w-0 whitespace-normal">
-              <p class="font-medium text-highlighted">{{ row.original.description }}</p>
+              <button
+                type="button"
+                class="rounded text-left font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4"
+                :aria-label="`View details: ${row.original.description} (${row.original.id})`"
+                @click="openDetail(row.original, $event)"
+              >
+                {{ row.original.description }}
+              </button>
               <template v-if="variant === 'full'">
                 <p v-if="row.original.counterparty" class="mt-1 text-sm text-muted">
                   {{ row.original.counterparty }}
@@ -181,7 +209,14 @@ const styles = computed(() => theme({ variant: props.variant }))
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0 break-words">
               <slot name="description" v-bind="scope(entry, 'mobile')">
-                <p class="font-medium text-highlighted">{{ entry.description }}</p>
+                <button
+                  type="button"
+                  class="min-h-11 rounded text-left font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4"
+                  :aria-label="`View details: ${entry.description} (${entry.id})`"
+                  @click="openDetail(entry, $event)"
+                >
+                  {{ entry.description }}
+                </button>
                 <p v-if="variant === 'full' && entry.counterparty" class="mt-1 text-sm text-muted">
                   {{ entry.counterparty }}
                 </p>
@@ -227,5 +262,20 @@ const styles = computed(() => theme({ variant: props.variant }))
         </slot>
       </li>
     </ul>
+    <USlideover
+      v-model:open="detailOpen"
+      title="Transaction details"
+      description="Details for this account activity."
+      :content="{ onCloseAutoFocus: restoreFocus }"
+      :ui="{ content: 'w-full max-w-md', body: 'min-w-0 overflow-y-auto' }"
+    >
+      <template #body>
+        <TransactionDetail
+          v-if="selected"
+          :transaction="selected"
+          :account="accountMap.get(selected.accountId)"
+        />
+      </template>
+    </USlideover>
   </div>
 </template>
