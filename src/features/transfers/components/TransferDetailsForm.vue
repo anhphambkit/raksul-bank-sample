@@ -72,7 +72,6 @@ if (state.recipientType === 'BENEFICIARY' && initialRecipient) {
 
 watch(state, () => emit('change', { ...state }), { flush: 'sync' })
 const schema = computed(() => transferDetailsSchema(props.accounts, props.beneficiaries))
-const formReady = computed(() => schema.value.safeParse(state).success)
 const accountIdReady = computed(() => /^\d{8,20}$/.test(state.recipientAccountId.trim()))
 const source = computed(() =>
   props.accounts.find((account) => account.id === state.sourceAccountId),
@@ -384,7 +383,7 @@ async function focusError(event: { errors: { id?: string }[] }) {
         class="justify-center"
         trailing-icon="i-lucide-arrow-right"
         :loading="submittingRecipient"
-        :disabled="submittingRecipient || !formReady"
+        :disabled="submittingRecipient"
       >
         Review transfer
       </UButton>

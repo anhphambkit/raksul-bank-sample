@@ -1,23 +1,31 @@
 # Raksul-bank
 
-## Overview
+A customer-facing banking dashboard built with Nuxt 4, Vue 3 and strict TypeScript. The demo covers account overview, transaction discovery and consistent transfers without requiring a backend or API key.
 
-A personal banking dashboard built with Nuxt 4, Vue 3 and TypeScript. It uses a mock HTTP API and browser-local IndexedDB persistence, with fictional data and no real banking connection.
+**Reviewer path:** [run locally](#getting-started) · [architecture](#architecture-overview) · [acceptance evidence](docs/verification.md) · [10-minute walkthrough](docs/interview-walkthrough.md)
 
-## What I Built
+## Highlights
 
-- Accounts and Overview with owned accounts, masked account numbers, USD balances, active/frozen status and recent activity.
-- Transaction explorer with text, account, direction, type, status and inclusive UTC date filters, API pagination and URL state.
-- Individual transaction details in a responsive drawer, available from Transactions and Recent activity.
-- Responsive navigation, keyboard focus management, loading/error/retry/empty states and confirmed demo reset.
-- Typed API client and MSW handlers for customer, accounts, transaction queries, beneficiaries and reset.
-- Deterministic seed data, validated persistence and atomic repository updates.
-- Exact integer-cent arithmetic, atomic transfer execution and persistent idempotency.
-- Transfer details, masked review, explicit confirmation and completion receipt for own accounts and saved/new beneficiaries.
-- Recipient creation, persisted draft/retry recovery and automatic same-browser tab refresh after committed changes.
-- Persistent light/dark themes, a focused Storybook catalog and visual regression baselines.
+- Browse owned accounts and realistic activity with responsive filters, pagination and transaction details.
+- Transfer between accounts or to saved/new recipients with exact integer-cent arithmetic, validation and clear outcome handling.
+- Keep balances, linked activity and idempotency records consistent in one validated IndexedDB transaction.
+- Exercise the same typed API boundary through browser MSW or a configurable Nuxt/Nitro backend bridge.
 
-Transfers are simulated and complete in one request after IndexedDB commits. No real funds move.
+Transfers are fictional and no real funds or customer data are involved.
+
+## Product tour
+
+### Accounts at a glance
+
+![Account overview with balance summary and account cards](scripts/visual/baselines/darwin/light-accounts-1440.png)
+
+### Searchable transaction activity
+
+![Transaction explorer with filters and paginated activity](scripts/visual/baselines/darwin/light-transactions-1440.png)
+
+### Guided transfer flow
+
+![Transfer form for own accounts and saved recipients](scripts/visual/baselines/darwin/light-transfer-1440.png)
 
 ## Deliberately Left Out
 
@@ -73,6 +81,7 @@ See [Nuxt migration and backend handoff](docs/nuxt-migration.md) for contracts, 
 | `npm run preview`        | Preview the production server locally.                    |
 | `npm run typecheck`      | Check application and tooling types.                      |
 | `npm run lint`           | Run ESLint.                                               |
+| `npm run check:links`    | Check local links in the README and three ADRs.           |
 | `npm run format:check`   | Check Prettier formatting.                                |
 | `npm run test -- --run`  | Run the unit/component suite once.                        |
 | `npm run test:ssr`       | Verify the built SSR server with a local backend fixture. |

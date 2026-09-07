@@ -15,6 +15,7 @@
     "typecheck": "nuxt typecheck",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
+    "check:links": "node scripts/check-markdown-links.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest",

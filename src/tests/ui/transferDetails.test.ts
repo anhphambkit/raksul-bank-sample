@@ -38,10 +38,10 @@ function form(initial?: TransferDetails) {
 }
 
 describe('transfer details', () => {
-  it('keeps review disabled until the form is valid', async () => {
+  it('keeps review available so submission can explain invalid fields', async () => {
     const empty = form()
     const emptyReview = empty.findAll('button').find((item) => item.text() === 'Review transfer')!
-    expect(emptyReview.attributes()).toHaveProperty('disabled')
+    expect(emptyReview.attributes()).not.toHaveProperty('disabled')
 
     const valid = form(details)
     const validReview = valid.findAll('button').find((item) => item.text() === 'Review transfer')!
@@ -128,7 +128,7 @@ describe('transfer details', () => {
         .findAll('button')
         .find((item) => item.text() === 'Review transfer')!
         .attributes(),
-    ).toHaveProperty('disabled')
+    ).not.toHaveProperty('disabled')
   })
   it('checks a same-bank Account ID and locks the verified account name', async () => {
     const wrapper = form()
