@@ -219,6 +219,8 @@ The transfer form supports saved beneficiaries; adding recipients and durable re
 
 ## Production Considerations
 
+See the [production architecture proposal](docs/architecture.md) for the client, Banking API, authentication service, database schema and communication flow. This proposal is not implemented infrastructure.
+
 A production banking system would require server-side authentication/authorization, transactional persistence, auditability, backups and real payment integration. The browser demo does not provide those guarantees.
 
 ## Architecture Decision Records
