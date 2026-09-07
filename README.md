@@ -208,6 +208,8 @@ The mutation never automatically retries. Confirmation is guarded against double
 
 ## Testing
 
+See the [requirement-by-requirement acceptance evidence](docs/verification.md) for the final review and verified checks.
+
 See [Testing strategy and SSR-only cases](docs/testing.md) for the automated Chromium suites, commands, and the checks that require an HTTP backend fixture instead of browser MSW.
 
 The unit/component suite covers domain, data/API, runtime configuration and UI behavior. Run `npm run test -- --run` for the current count; run `npm run build && npm run test:ssr` for production SSR integration checks.

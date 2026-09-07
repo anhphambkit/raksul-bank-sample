@@ -27,14 +27,23 @@ Reviewed against the original four Core requirements and five deliverables on 20
 
 ## Quality checks
 
-- 228 unit/component tests passed across 14 files.
-- ESLint, strict Nuxt typecheck, Prettier, Git whitespace check and production build passed.
+- 230 unit/component tests passed across 15 files.
+- Clean `npm ci --no-audit --no-fund` completed from the committed lockfile and generated Nuxt types.
+- `npm run lint`, `npm run format:check`, strict Nuxt typecheck, Git whitespace check and the production build passed.
+- `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright npm run test:all` passed after the clean install; this runs unit tests, typecheck/build, SSR and Chromium checks in sequence.
 - Production SSR checks passed: data rendering, query/error hydration, request isolation, auth-context forwarding, query/POST forwarding, private caching, error statuses and demo/backend modes.
-- Eight Chromium tests passed, including demo persistence/reset, backend cache/error hydration and Core QA at 1440/768/390px. QA checks keyboard navigation, masking, frozen controls, filtered-empty recovery, horizontal overflow, associated validation errors and focus after an invalid submission.
+- Eleven Chromium tests passed, including demo persistence/reset, backend cache/error hydration and Core QA at 1440/768/390px. QA checks keyboard navigation, masking, frozen controls, filtered-empty recovery, horizontal overflow, associated validation errors and focus after an invalid submission.
 - Inspected screenshots of account/overview/transaction layouts and transfer review. Successful QA paths report no console errors; all browser tests reject uncaught errors or hydration mismatches.
 
 The validation-focus regression is covered in both `transferDetails.test.ts` and browser QA. Review performs local validation with automatic loading disabled so an invalid field can receive focus; the separate Confirm mutation retains its repeated-submit guard.
 
 ## Optional work
 
-Focused transfer testing and SSR/browser coverage are implemented; these support but do not replace the Core requirements. Storybook, authentication, spending insights, dark mode and visual regression baselines are not implemented and are not required for acceptance. Browser coverage is Chromium-only; viewport checks are not a claim of real iOS/Android device testing. See [testing strategy](testing.md) for test boundaries and reproduction commands.
+| Nice-to-Have                | Result                     | Evidence                                                                                                                                                                                                                                                                                                         |
+| --------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Focused testing             | PASS                       | `src/tests/data/executeTransfer.test.ts` covers all seven priority invariants; unit/component, SSR and native Chromium suites passed.                                                                                                                                                                            |
+| System architecture         | PASS                       | `docs/architecture.md` covers the Vue client, Banking API, authentication service, database schema and communication flow, with proposal-only components clearly identified.                                                                                                                                     |
+| Individual transaction view | PASS                       | `TransactionDetail.vue`, `TransactionTable.vue`, two focused unit tests and three browser viewport tests. Both Transactions and Recent activity expose the drawer. Masking, signed amounts, UTC time, related IDs, focus containment/return, preserved filters and absence of new banking requests are verified. |
+| Authentication              | Not implemented (optional) | Explicitly excluded in README; identity/session design is a proposal only.                                                                                                                                                                                                                                       |
+
+Optional features support but do not replace the Core requirements. Storybook, authentication, spending insights, dark mode and visual regression baselines are not implemented and are not required for acceptance. Browser coverage is Chromium-only; viewport checks are not a claim of real iOS/Android device testing. See [testing strategy](testing.md) for test boundaries and reproduction commands.
