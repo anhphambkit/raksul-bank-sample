@@ -89,7 +89,7 @@ The requested follow-up is documented in [enhancements](enhancements.md). Cross-
 - Strict typecheck, lint, formatting, Git whitespace check, production build and SSR smoke passed.
 - All 15 Chromium E2E tests passed, including recipient creation, close/reopen recovery and two-tab synchronization.
 - All four visual comparison tests passed against 12 committed baseline images.
-- Storybook production build and three browser tests passed (all 11 stories in each theme, seven component groups, and live Controls updates).
+- Storybook production build and five browser tests passed (all 11 stories in each theme, seven component groups, Controls on every story, legacy bookmark compatibility and live Controls updates).
 - Visual baselines cover Accounts, Transactions and Transfer at 1440/390px in light/dark mode.
 - The earlier 230-test/11-browser-test counts below describe the original Core gate.
 

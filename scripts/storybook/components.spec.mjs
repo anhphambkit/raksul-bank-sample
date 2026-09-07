@@ -47,3 +47,29 @@ test('seven component groups are indexed and Controls update the rendered amount
     page.frameLocator('#storybook-preview-iframe').locator('#storybook-root'),
   ).toContainText('$2,500.75')
 })
+
+test('every story exposes Controls in the manager', async ({ page }) => {
+  for (const story of stories) {
+    await page.goto(`/?path=/story/banking-${story}`)
+    await page.getByRole('tab', { name: /Controls/ }).click()
+    const controls = page.getByRole('tabpanel', { name: /Controls/ })
+    await expect(controls.getByRole('row').nth(1)).toBeVisible()
+    await expect(controls.getByText('This story has no controls', { exact: true })).toHaveCount(0)
+  }
+})
+
+test('legacy Uncertain Outcome link redirects and pending Control updates the review', async ({
+  page,
+}) => {
+  await page.goto('/?path=/story/banking-components--uncertain-outcome')
+  await expect(page).toHaveURL(/banking-transferreview--uncertain/)
+  await page.getByRole('tab', { name: /Controls/ }).click()
+  const preview = page.frameLocator('#storybook-preview-iframe')
+  await expect(preview.getByRole('button', { name: 'Retry same transfer' })).toBeEnabled()
+  const pending = page.getByRole('switch', { name: 'pending' })
+  await pending.focus()
+  await pending.press('Space')
+  await expect(pending).toBeChecked()
+  await expect(preview.getByRole('button', { name: 'Retry same transfer' })).toBeDisabled()
+  await expect(preview.getByRole('status')).toContainText('Confirming your transfer')
+})

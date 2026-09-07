@@ -36,7 +36,7 @@ npm run build-storybook
 PLAYWRIGHT_BROWSERS_PATH=.tools/playwright npm run test:storybook
 ```
 
-The three browser checks open all eleven stories in both themes, reject browser exceptions, verify seven indexed component groups and change amountMinor through Controls to assert the rendered amount updates. Storybook configuration follows the [official Vue/Vite framework guide](https://storybook.js.org/docs/get-started/frameworks/vue3-vite).
+The five browser checks open all eleven stories in both themes, reject browser exceptions, verify seven indexed component groups, require Controls for every story, preserve legacy combined-catalog bookmarks and change live Controls to assert the rendered state updates. Storybook configuration follows the [official Vue/Vite framework guide](https://storybook.js.org/docs/get-started/frameworks/vue3-vite).
 
 ## Visual regression
 
