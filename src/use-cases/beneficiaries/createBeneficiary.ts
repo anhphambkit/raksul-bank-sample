@@ -12,8 +12,8 @@ function normalizeRequest(input: CreateBeneficiaryRequest): CreateBeneficiaryReq
   }
 }
 
-/** Add or resolve a beneficiary in the caller's transaction. */
-export function saveBeneficiary(
+/** Resolve recipient identity without saving a contact. */
+export function resolveBeneficiary(
   state: BankingState,
   input: CreateBeneficiaryRequest,
   id: string,
@@ -28,19 +28,18 @@ export function saveBeneficiary(
     request.currency !== 'USD'
   )
     throw new DomainError('INVALID_RECIPIENT', 'Check the recipient name, bank and account number.')
-  const target = state.accounts.find((account) => account.accountNumber === request.accountNumber)
-  if (
-    target &&
-    (target.ownerId === state.customer.id ||
-      target.status !== 'ACTIVE' ||
-      request.bankName.toLowerCase() !== 'raksul-bank')
-  )
+  const sameBank = request.bankName.toLowerCase() === 'raksul-bank'
+  const target = sameBank
+    ? state.accounts.find((account) => account.accountNumber === request.accountNumber)
+    : undefined
+  if (target && (target.ownerId === state.customer.id || target.status !== 'ACTIVE'))
     throw new DomainError(
       'INVALID_RECIPIENT',
       'Choose an available recipient account and its correct bank. Use My accounts for your own accounts.',
     )
-  if (!target && request.bankName.toLowerCase() === 'raksul-bank')
+  if (!target && sameBank)
     throw new DomainError('INVALID_RECIPIENT', 'This Raksul-bank recipient account was not found.')
+  if (target) request.displayName = target.displayName
   const previous = state.beneficiaries.find(
     (item) =>
       item.accountNumber === request.accountNumber &&
@@ -53,7 +52,18 @@ export function saveBeneficiary(
     ...request,
     ...(target ? { internalAccountId: target.id } : {}),
   }
-  state.beneficiaries.push(beneficiary)
+  return beneficiary
+}
+
+/** Add or resolve a saved contact in the caller's transaction. */
+export function saveBeneficiary(
+  state: BankingState,
+  input: CreateBeneficiaryRequest,
+  id: string,
+): Beneficiary {
+  const beneficiary = resolveBeneficiary(state, input, id)
+  if (!state.beneficiaries.some((item) => item.id === beneficiary.id))
+    state.beneficiaries.push(beneficiary)
   return beneficiary
 }
 

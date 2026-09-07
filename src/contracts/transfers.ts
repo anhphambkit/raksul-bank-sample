@@ -8,7 +8,12 @@ export interface TransferRequest {
   destination:
     | { kind: 'OWN_ACCOUNT'; accountId: string }
     | { kind: 'BENEFICIARY'; beneficiaryId: string }
-    | { kind: 'NEW_BENEFICIARY'; beneficiary: CreateBeneficiaryRequest }
+    | {
+        kind: 'NEW_BENEFICIARY'
+        beneficiary: CreateBeneficiaryRequest
+        /** Omitted only by legacy clients/recovery records, which saved by default. */
+        saveRecipient?: boolean
+      }
   amountMinor: number
   currency: CurrencyCode
   reference?: string

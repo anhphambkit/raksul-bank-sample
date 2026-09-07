@@ -7,9 +7,12 @@ const stories = [
   'moneyinput--invalid',
   'transactiontable--default',
   'transferdetailsform--default',
+  'transferdetailsform--saved-recipient',
+  'transferdetailsform--no-saved-recipients',
   'transferreview--default',
   'transferreview--confirming',
   'transferreview--uncertain',
+  'transferreview--conflict',
   'transferreceipt--default',
 ]
 for (const theme of ['light', 'dark']) {

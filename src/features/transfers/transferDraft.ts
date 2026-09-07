@@ -14,6 +14,9 @@ export interface TransferDetails {
   bankName: string
   amount: string
   reference: string
+  savedBeneficiaryId?: string
+  saveRecipient?: boolean
+  verifiedAccountNumber?: string
 }
 export interface TransferDraft {
   request: TransferRequest
@@ -33,6 +36,9 @@ export function transferDetailsSchema(accounts: Account[], beneficiaries: Benefi
       bankName: z.string().max(80, 'Use 80 characters or fewer.'),
       amount: z.string().min(1, 'Enter an amount.'),
       reference: z.string().max(140, 'Use 140 characters or fewer.'),
+      savedBeneficiaryId: z.string().optional(),
+      saveRecipient: z.boolean().optional(),
+      verifiedAccountNumber: z.string().optional(),
     })
     .superRefine((details, ctx) => {
       const issue = (path: string, message: string) =>
@@ -49,9 +55,19 @@ export function transferDetailsSchema(accounts: Account[], beneficiaries: Benefi
           target.currency !== source?.currency
         )
           issue('destinationId', 'Choose a different active account in the same currency.')
+      } else if (details.savedBeneficiaryId) {
+        const saved = beneficiaries.find((item) => item.id === details.savedBeneficiaryId)
+        if (
+          !saved ||
+          saved.currency !== source?.currency ||
+          saved.customerId !== source?.ownerId ||
+          Boolean(saved.internalAccountId) !== (details.recipientNetwork === 'SAME_BANK')
+        )
+          issue('savedBeneficiaryId', 'Choose an available saved recipient.')
       } else {
         const accountIdIsValid = /^\d{8,20}$/.test(details.recipientAccountId.trim())
-        if (!accountIdIsValid) issue('recipientAccountId', 'Enter an Account ID with 8–20 digits.')
+        if (!accountIdIsValid)
+          issue('recipientAccountId', 'Enter an account number with 8–20 digits.')
         if (details.recipientNetwork === 'OTHER_BANK') {
           if (!details.bankName.trim()) issue('bankName', 'Choose a bank.')
           if (!details.recipientName.trim())
@@ -61,9 +77,17 @@ export function transferDetailsSchema(accounts: Account[], beneficiaries: Benefi
         if (
           accountIdIsValid &&
           details.recipientNetwork === 'SAME_BANK' &&
-          (!target || !target.internalAccountId || target.currency !== source?.currency)
+          !(
+            target?.internalAccountId &&
+            target.currency === source?.currency &&
+            target.accountNumber === details.recipientAccountId.trim()
+          ) &&
+          !(
+            details.verifiedAccountNumber === details.recipientAccountId.trim() &&
+            details.recipientName.trim()
+          )
         )
-          issue('recipientAccountId', 'Check the Account ID before continuing.')
+          issue('recipientAccountId', 'Check the account number before continuing.')
       }
       if (details.amount) {
         try {
@@ -85,14 +109,16 @@ export function prepareTransfer(
   const valid = transferDetailsSchema(accounts, beneficiaries).parse(details)
   const source = accounts.find((account) => account.id === valid.sourceAccountId)!
   const target = accounts.find((account) => account.id === valid.destinationId)
-  const beneficiary =
-    beneficiaries.find((item) => item.id === valid.destinationId) ??
-    beneficiaries.find(
-      (item) =>
-        !item.internalAccountId &&
-        item.accountNumber === valid.recipientAccountId.trim() &&
-        item.bankName.toLowerCase() === valid.bankName.trim().toLowerCase(),
-    )
+  const beneficiary = valid.savedBeneficiaryId
+    ? beneficiaries.find((item) => item.id === valid.savedBeneficiaryId)
+    : valid.recipientNetwork === 'SAME_BANK'
+      ? beneficiaries.find((item) => item.id === valid.destinationId)
+      : beneficiaries.find(
+          (item) =>
+            !item.internalAccountId &&
+            item.accountNumber === valid.recipientAccountId.trim() &&
+            item.bankName.toLowerCase() === valid.bankName.trim().toLowerCase(),
+        )
   return {
     details: { ...valid },
     source: { ...source },
@@ -111,7 +137,8 @@ export function prepareTransfer(
             }
           : {
               name: valid.recipientName.trim(),
-              bankName: valid.bankName.trim(),
+              bankName:
+                valid.recipientNetwork === 'SAME_BANK' ? 'Raksul-bank' : valid.bankName.trim(),
               accountNumber: valid.recipientAccountId.trim(),
             },
     request: {
@@ -124,9 +151,11 @@ export function prepareTransfer(
             ? { kind: 'BENEFICIARY', beneficiaryId: beneficiary.id }
             : {
                 kind: 'NEW_BENEFICIARY',
+                saveRecipient: valid.saveRecipient === true,
                 beneficiary: {
                   displayName: valid.recipientName.trim(),
-                  bankName: valid.bankName.trim(),
+                  bankName:
+                    valid.recipientNetwork === 'SAME_BANK' ? 'Raksul-bank' : valid.bankName.trim(),
                   accountNumber: valid.recipientAccountId.trim(),
                   currency: 'USD',
                 },

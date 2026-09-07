@@ -16,6 +16,7 @@ export const transferRequestSchema = z.strictObject({
     z.strictObject({
       kind: z.literal('NEW_BENEFICIARY'),
       beneficiary: beneficiaryRequestSchema,
+      saveRecipient: z.boolean().optional(),
     }),
   ]),
   amountMinor: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),

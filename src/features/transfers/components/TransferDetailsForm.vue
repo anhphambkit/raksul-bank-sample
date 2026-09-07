@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { useBankingContext } from '@/data/api/bankingContext'
+import { DEMO_NEW_SAME_BANK_NUMBER } from '@/shared/config/demoRecipients'
+import type { CreateBeneficiaryRequest } from '@/contracts/beneficiaries'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import UForm from '@nuxt/ui/components/Form.vue'
 import UFormField from '@nuxt/ui/components/FormField.vue'
 import USelect from '@nuxt/ui/components/Select.vue'
+import USelectMenu from '@nuxt/ui/components/SelectMenu.vue'
+import UCheckbox from '@nuxt/ui/components/Checkbox.vue'
 import URadioGroup from '@nuxt/ui/components/RadioGroup.vue'
 import UInput from '@nuxt/ui/components/Input.vue'
 import UButton from '@nuxt/ui/components/Button.vue'
@@ -24,12 +29,15 @@ const props = defineProps<{
   accounts: Account[]
   beneficiaries: Beneficiary[]
   initial?: TransferDetails
+  demoDefaults?: boolean
 }>()
 const emit = defineEmits<{ review: [draft: TransferDraft]; change: [details: TransferDetails] }>()
 const form = ref<{ clear(path?: string | RegExp): void }>()
 const recipientError = ref('')
-const checkedRecipient = ref<Beneficiary>()
-const banks = [
+const { api } = useBankingContext()
+const checking = ref(false)
+const checkedRecipient = ref<CreateBeneficiaryRequest>()
+const bankOptions = [
   { label: 'Vietcombank', value: 'Vietcombank' },
   { label: 'Agribank', value: 'Agribank' },
   { label: 'BIDV', value: 'BIDV' },
@@ -41,6 +49,16 @@ const banks = [
   { label: 'VPBank', value: 'VPBank' },
   { label: 'TPBank', value: 'TPBank' },
 ]
+const banks = computed(() => [
+  ...bankOptions,
+  ...[
+    ...new Set(
+      props.beneficiaries.filter((item) => !item.internalAccountId).map((item) => item.bankName),
+    ),
+  ]
+    .filter((name) => !bankOptions.some((bank) => bank.value === name))
+    .map((name) => ({ label: name, value: name })),
+])
 const state = reactive<TransferDetails>(
   props.initial
     ? { ...props.initial }
@@ -54,18 +72,93 @@ const state = reactive<TransferDetails>(
         bankName: '',
         amount: '',
         reference: '',
+        saveRecipient: false,
       },
 )
 
 const accountNumberInput = strictNumericInput(/^\d*$/, () => state.recipientAccountId)
 
+// An old draft may contain a recipient from the other network. Require a new choice.
+if (
+  state.savedBeneficiaryId &&
+  !props.beneficiaries.some(
+    (item) =>
+      item.id === state.savedBeneficiaryId &&
+      Boolean(item.internalAccountId) === (state.recipientNetwork === 'SAME_BANK'),
+  )
+)
+  state.savedBeneficiaryId = ''
+
+const savedRecipient = computed(() =>
+  props.beneficiaries.find((item) => item.id === state.savedBeneficiaryId),
+)
+const savedOptions = computed(() =>
+  props.beneficiaries
+    .filter((item) => Boolean(item.internalAccountId) === (state.recipientNetwork === 'SAME_BANK'))
+    .map((item) => ({
+      value: item.id,
+      label: item.displayName,
+      description: `${item.bankName} · ${maskAccountNumber(item.accountNumber)}`,
+    })),
+)
+const matchingContact = computed(() =>
+  props.beneficiaries.find(
+    (item) =>
+      item.accountNumber === state.recipientAccountId.trim() &&
+      item.bankName.toLowerCase() ===
+        (state.recipientNetwork === 'SAME_BANK'
+          ? 'raksul-bank'
+          : state.bankName.trim().toLowerCase()),
+  ),
+)
+function selectSaved(value: string | undefined) {
+  state.savedBeneficiaryId = value || ''
+  recipientError.value = ''
+  form.value?.clear()
+  if (!value && !state.recipientAccountId) fillDemoRecipient()
+}
+
+function fillDemoRecipient() {
+  if (!props.demoDefaults || state.recipientType !== 'BENEFICIARY' || state.savedBeneficiaryId)
+    return
+  if (state.recipientNetwork === 'SAME_BANK') {
+    state.recipientAccountId = DEMO_NEW_SAME_BANK_NUMBER
+    return
+  }
+  const sample = props.beneficiaries.find(
+    (item) => Boolean(item.internalAccountId) === (state.recipientNetwork === 'SAME_BANK'),
+  )
+  if (!sample) return
+  state.recipientAccountId = sample.accountNumber
+  if (state.recipientNetwork === 'OTHER_BANK') {
+    state.recipientName = sample.displayName
+    state.bankName = sample.bankName
+  }
+}
+
+// Restored drafts always take precedence over demo defaults.
+if (!props.initial) fillDemoRecipient()
+
 const initialRecipient = props.beneficiaries.find((item) => item.id === state.destinationId)
-if (state.recipientType === 'BENEFICIARY' && initialRecipient) {
+if (state.recipientType === 'BENEFICIARY' && !state.savedBeneficiaryId && initialRecipient) {
   state.recipientNetwork = initialRecipient.internalAccountId ? 'SAME_BANK' : 'OTHER_BANK'
   state.recipientAccountId ||= initialRecipient.accountNumber
   state.recipientName ||= initialRecipient.displayName
   state.bankName ||= initialRecipient.internalAccountId ? '' : initialRecipient.bankName
   if (initialRecipient.internalAccountId) checkedRecipient.value = initialRecipient
+}
+if (
+  !checkedRecipient.value &&
+  state.recipientNetwork === 'SAME_BANK' &&
+  state.verifiedAccountNumber === state.recipientAccountId.trim() &&
+  state.recipientName
+) {
+  checkedRecipient.value = {
+    displayName: state.recipientName,
+    accountNumber: state.verifiedAccountNumber,
+    bankName: 'Raksul-bank',
+    currency: 'USD',
+  }
 }
 
 watch(state, () => emit('change', { ...state }), { flush: 'sync' })
@@ -98,26 +191,38 @@ const ownDestinations = computed(() =>
 watch(
   () => [state.sourceAccountId, state.recipientType],
   () => {
+    state.verifiedAccountNumber = ''
     state.destinationId = ''
     checkedRecipient.value = undefined
     recipientError.value = ''
   },
 )
 watch(
+  () => state.recipientType,
+  () => {
+    if (!state.recipientAccountId) fillDemoRecipient()
+  },
+)
+watch(
   () => state.recipientNetwork,
   () => {
+    state.savedBeneficiaryId = ''
+    form.value?.clear()
+    state.verifiedAccountNumber = ''
     state.destinationId = ''
     state.recipientAccountId = ''
     state.recipientName = ''
     state.bankName = ''
     checkedRecipient.value = undefined
     recipientError.value = ''
+    fillDemoRecipient()
   },
 )
 watch(
   () => state.recipientAccountId,
   () => {
     if (state.recipientNetwork !== 'SAME_BANK') return
+    state.verifiedAccountNumber = ''
     state.destinationId = ''
     state.recipientName = ''
     checkedRecipient.value = undefined
@@ -125,32 +230,41 @@ watch(
   },
 )
 
-function checkAccount() {
-  const accountId = state.recipientAccountId.trim()
+async function checkAccount() {
+  if (checking.value) return
+  const number = state.recipientAccountId.trim()
   checkedRecipient.value = undefined
   state.destinationId = ''
+  state.verifiedAccountNumber = ''
   state.recipientName = ''
   recipientError.value = ''
   form.value?.clear(/recipientAccountId|destinationId/)
-  if (!/^\d{8,20}$/.test(accountId)) {
-    recipientError.value = 'Enter an Account ID with 8–20 digits.'
+  if (!/^\d{8,20}$/.test(number)) {
+    recipientError.value = 'Enter an account number with 8–20 digits.'
     return
   }
-  const ownAccount = props.accounts.find((item) => item.accountNumber === accountId)
-  if (ownAccount) {
-    recipientError.value = 'This is one of your accounts. Choose My accounts instead.'
-    return
+  checking.value = true
+  try {
+    const recipient = await api.lookupRecipient(number)
+    if (
+      state.recipientNetwork !== 'SAME_BANK' ||
+      state.recipientAccountId.trim() !== number ||
+      state.savedBeneficiaryId
+    )
+      return
+    checkedRecipient.value = recipient
+    state.destinationId =
+      props.beneficiaries.find((item) => item.internalAccountId && item.accountNumber === number)
+        ?.id ?? ''
+    state.recipientName = recipient.displayName
+    state.verifiedAccountNumber = number
+  } catch (error) {
+    if (state.recipientNetwork === 'SAME_BANK' && state.recipientAccountId.trim() === number)
+      recipientError.value =
+        error instanceof Error ? error.message : 'Could not check this account. Try again.'
+  } finally {
+    checking.value = false
   }
-  const recipient = props.beneficiaries.find(
-    (item) => item.internalAccountId && item.accountNumber === accountId,
-  )
-  if (!recipient) {
-    recipientError.value = 'We could not find this Raksul-bank account.'
-    return
-  }
-  checkedRecipient.value = recipient
-  state.destinationId = recipient.id
-  state.recipientName = recipient.displayName
 }
 
 function review() {
@@ -244,86 +358,131 @@ async function focusError(event: { errors: { id?: string }[] }) {
           class="w-full"
         />
       </UFormField>
+      <UFormField label="Saved recipient" name="savedBeneficiaryId" hint="Optional">
+        <USelectMenu
+          aria-label="Saved recipient"
+          :model-value="state.savedBeneficiaryId || undefined"
+          :items="savedOptions"
+          value-key="value"
+          :filter-fields="['label', 'description']"
+          :search-input="{ placeholder: 'Search name, bank or last 4 digits' }"
+          placeholder="Choose a saved recipient"
+          class="w-full"
+          size="lg"
+          @update:model-value="selectSaved"
+        >
+          <template #empty>No saved recipients match your search.</template>
+        </USelectMenu>
+        <p v-if="!savedOptions.length" class="mt-2 text-sm text-muted">
+          No saved recipients for this bank network. Enter a recipient below.
+        </p>
+      </UFormField>
+      <div v-if="state.savedBeneficiaryId" class="space-y-3">
+        <p v-if="savedRecipient" role="status" class="text-sm text-muted">
+          {{ savedRecipient.bankName }} · {{ maskAccountNumber(savedRecipient.accountNumber) }}
+        </p>
+        <UButton color="neutral" variant="outline" @click="selectSaved(undefined)">
+          Enter a new recipient
+        </UButton>
+      </div>
+      <template v-else>
+        <p class="text-sm text-muted">Or enter a recipient</p>
+        <p v-if="demoDefaults" class="text-xs text-muted">
+          Demo account details are prefilled when you choose a bank network. You can edit them.
+        </p>
 
-      <div :class="state.recipientNetwork === 'OTHER_BANK' ? 'grid gap-4 md:grid-cols-2' : ''">
+        <div :class="state.recipientNetwork === 'OTHER_BANK' ? 'grid gap-4 md:grid-cols-2' : ''">
+          <UFormField
+            v-if="state.recipientNetwork === 'OTHER_BANK'"
+            label="Bank"
+            name="bankName"
+            required
+          >
+            <USelect
+              v-model="state.bankName"
+              :items="banks"
+              placeholder="Choose a bank"
+              class="w-full"
+              size="lg"
+            />
+          </UFormField>
+
+          <UFormField
+            label="Account number"
+            name="recipientAccountId"
+            required
+            :error="recipientError || undefined"
+          >
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <UInput
+                v-model="state.recipientAccountId"
+                inputmode="numeric"
+                autocomplete="off"
+                :maxlength="20"
+                placeholder="Enter 8–20 digits"
+                class="min-w-0 flex-1"
+                size="lg"
+                @beforeinput="accountNumberInput.beforeinput"
+                @input.capture="accountNumberInput.input"
+              />
+              <UButton
+                v-if="state.recipientNetwork === 'SAME_BANK'"
+                type="button"
+                color="neutral"
+                variant="outline"
+                size="lg"
+                icon="i-lucide-search"
+                class="justify-center"
+                :disabled="!accountIdReady || checking"
+                :loading="checking"
+                @click="checkAccount"
+              >
+                Check account
+              </UButton>
+            </div>
+          </UFormField>
+        </div>
+
+        <div
+          v-if="checkedRecipient"
+          role="status"
+          class="flex items-center gap-3 rounded-xl border border-success/25 bg-success/5 px-4 py-3"
+        >
+          <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-success/10">
+            <UIcon name="i-lucide-badge-check" class="size-5 text-success" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-semibold text-highlighted">
+              {{ checkedRecipient.displayName }}
+            </p>
+            <p class="text-sm text-muted">Verified Raksul-bank account</p>
+          </div>
+        </div>
+
         <UFormField
           v-if="state.recipientNetwork === 'OTHER_BANK'"
-          label="Bank"
-          name="bankName"
+          label="Account holder name"
+          name="recipientName"
           required
         >
-          <USelect
-            v-model="state.bankName"
-            :items="banks"
-            placeholder="Choose a bank"
+          <UInput
+            v-model="state.recipientName"
+            placeholder="Enter the name on the account"
+            :maxlength="80"
             class="w-full"
             size="lg"
           />
         </UFormField>
-
-        <UFormField
-          label="Account ID"
-          name="recipientAccountId"
-          required
-          :error="recipientError || undefined"
-        >
-          <div class="flex flex-col gap-3 sm:flex-row">
-            <UInput
-              v-model="state.recipientAccountId"
-              inputmode="numeric"
-              autocomplete="off"
-              :maxlength="20"
-              placeholder="Enter 8–20 digits"
-              class="min-w-0 flex-1"
-              size="lg"
-              @beforeinput="accountNumberInput.beforeinput"
-              @input.capture="accountNumberInput.input"
-            />
-            <UButton
-              v-if="state.recipientNetwork === 'SAME_BANK'"
-              type="button"
-              color="neutral"
-              variant="outline"
-              size="lg"
-              icon="i-lucide-search"
-              class="justify-center"
-              :disabled="!accountIdReady"
-              @click="checkAccount"
-            >
-              Check account
-            </UButton>
-          </div>
-        </UFormField>
-      </div>
-
-      <div
-        v-if="checkedRecipient"
-        role="status"
-        class="flex items-center gap-3 rounded-xl border border-success/25 bg-success/5 px-4 py-3"
-      >
-        <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-success/10">
-          <UIcon name="i-lucide-badge-check" class="size-5 text-success" />
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="truncate font-semibold text-highlighted">{{ checkedRecipient.displayName }}</p>
-          <p class="text-sm text-muted">Verified Raksul-bank account</p>
-        </div>
-      </div>
-
-      <UFormField
-        v-if="state.recipientNetwork === 'OTHER_BANK'"
-        label="Account holder name"
-        name="recipientName"
-        required
-      >
-        <UInput
-          v-model="state.recipientName"
-          placeholder="Enter the name on the account"
-          :maxlength="80"
-          class="w-full"
-          size="lg"
+        <UCheckbox
+          v-if="!matchingContact && (state.recipientNetwork === 'OTHER_BANK' || checkedRecipient)"
+          v-model="state.saveRecipient"
+          label="Save recipient for next time"
+          description="Saved only after a successful transfer."
         />
-      </UFormField>
+        <p v-else-if="matchingContact" class="text-sm text-muted">
+          This recipient is already saved.
+        </p>
+      </template>
     </div>
 
     <div class="grid gap-5 sm:grid-cols-2">

@@ -4,7 +4,7 @@ import { seed, accounts } from './fixtures'
 const meta = {
   title: 'Banking/TransferDetailsForm',
   component: TransferDetailsForm,
-  args: { accounts, beneficiaries: seed.beneficiaries },
+  args: { accounts, beneficiaries: seed.beneficiaries, demoDefaults: true },
   argTypes: {
     accounts: { control: 'object' },
     beneficiaries: { control: 'object' },
@@ -14,3 +14,25 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 export const Default: Story = {}
+export const SavedRecipient: Story = {
+  args: {
+    initial: {
+      sourceAccountId: accounts[0]!.id,
+      recipientType: 'BENEFICIARY',
+      savedBeneficiaryId: 'beneficiary-alex',
+      destinationId: '',
+      recipientNetwork: 'SAME_BANK',
+      recipientAccountId: '',
+      recipientName: '',
+      bankName: '',
+      amount: '10.50',
+      reference: '',
+    },
+  },
+}
+export const NoSavedRecipients: Story = {
+  args: {
+    beneficiaries: [],
+    initial: { ...SavedRecipient.args!.initial!, savedBeneficiaryId: '' },
+  },
+}

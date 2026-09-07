@@ -63,6 +63,7 @@ async function details(wrapper: VueWrapper, beneficiary?: string, amount = '10.5
     if (recipient.internalAccountId) {
       await wrapper.get('input[inputmode="numeric"]').setValue(recipient.accountNumber)
       await button(wrapper, 'Check account').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Verified Raksul-bank account'))
     } else {
       wrapper
         .findAllComponents({ name: 'RadioGroup' })[1]!
@@ -86,6 +87,37 @@ async function details(wrapper: VueWrapper, beneficiary?: string, amount = '10.5
 }
 
 describe('transfer details → review → confirmation → receipt', () => {
+  it('stops retrying a conflicting key, persists the conflict on reload and allows checking activity', async () => {
+    const calls: TransferRequest[] = []
+    server.use(
+      http.post('*/api/transfers', async ({ request }) => {
+        calls.push((await request.json()) as TransferRequest)
+        return HttpResponse.json(
+          { error: { code: 'IDEMPOTENCY_CONFLICT', message: 'Different request' } },
+          { status: 409 },
+        )
+      }),
+    )
+    const { wrapper, router } = await page()
+    await details(wrapper)
+    await button(wrapper, 'Confirm transfer').trigger('click')
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain('These details conflict with an earlier transfer.'),
+    )
+    expect(button(wrapper, 'Retry same transfer')).toBeUndefined()
+    expect(button(wrapper, 'Confirm transfer')).toBeUndefined()
+    expect(button(wrapper, 'Back').attributes('disabled')).toBeUndefined()
+    await router.push('/transactions')
+    expect(router.currentRoute.value.path).toBe('/transactions')
+    await router.push('/transfer')
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain('These details conflict with an earlier transfer.'),
+    )
+    expect(button(wrapper, 'Confirm transfer')).toBeUndefined()
+    expect(wrapper.find('a[href="/transactions"]').text()).toBe('Check transaction activity')
+    expect(calls).toHaveLength(1)
+    expect((await repository.load()).transfers).toHaveLength(6)
+  })
   it('does not submit if the pending request cannot be saved for recovery', async () => {
     const { wrapper } = await page()
     await details(wrapper)

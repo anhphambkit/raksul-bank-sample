@@ -20,12 +20,13 @@ import { useBankingContext } from '@/data/api/bankingContext'
 import type { TransferDetails } from '@/features/transfers/transferDraft'
 import type { TransferDraft } from '@/features/transfers/transferDraft'
 import type { TransferReceipt as Receipt } from '@/contracts/transfers'
-import { transferFailure } from '@/features/transfers/transferFailure'
+import { transferFailure, idempotencyConflictFailure } from '@/features/transfers/transferFailure'
 import DataState from '@/shared/components/DataState.vue'
 const { mocksEnabled } = useBankingContext()
 const storageError = ref('')
 const recovered = ref(false)
 const uncertain = ref(false)
+const conflict = ref(false)
 const detailsDraft = ref<TransferDetails>()
 const detailsVersion = ref(0)
 let storageKey = ''
@@ -41,13 +42,15 @@ const stageIndex = computed(() => stages.indexOf(stage.value))
 const failure = computed(() =>
   mutation.error.value
     ? transferFailure(mutation.error.value)
-    : uncertain.value && !mutation.isPending.value
-      ? {
-          uncertain: true,
-          message:
-            'A previous confirmation may have completed. Retry the same transfer to retrieve its outcome without sending twice.',
-        }
-      : undefined,
+    : conflict.value
+      ? idempotencyConflictFailure
+      : uncertain.value && !mutation.isPending.value
+        ? {
+            uncertain: true,
+            message:
+              'A previous confirmation may have completed. Retry the same transfer to retrieve its outcome without sending twice.',
+          }
+        : undefined,
 )
 const heading = ref<HTMLElement>()
 let submitting = false
@@ -102,6 +105,7 @@ onMounted(() => {
           draft.value = saved.draft
           stage.value = 'REVIEW'
           uncertain.value = saved.submitted
+          conflict.value = saved.conflict === true
         }
       })
     },
@@ -114,6 +118,7 @@ onBeforeUnmount(() => stopRecoveryWatch?.())
 function review(value: TransferDraft) {
   if (!persist(() => saveReview(storageKey, value, false))) return
   uncertain.value = false
+  conflict.value = false
   draft.value = value
   mutation.reset()
   stage.value = 'REVIEW'
@@ -125,6 +130,7 @@ function back() {
   detailsDraft.value = draft.value?.details
   if (detailsDraft.value) persist(() => saveDetails(storageKey, detailsDraft.value!))
   mutation.reset()
+  conflict.value = false
   stage.value = 'DETAILS'
   void focusStage()
 }
@@ -155,7 +161,7 @@ async function confirm() {
   }
 }
 async function performConfirm() {
-  if (submitting || stage.value !== 'REVIEW' || !draft.value) return
+  if (submitting || stage.value !== 'REVIEW' || !draft.value || failure.value?.conflict) return
   if (!persist(() => saveReview(storageKey, draft.value!, true))) return
   uncertain.value = true
   submitting = true
@@ -171,7 +177,8 @@ async function performConfirm() {
   } catch {
     if (draft.value && mutation.error.value && !transferFailure(mutation.error.value).uncertain) {
       uncertain.value = false
-      persist(() => saveReview(storageKey, draft.value!, false))
+      conflict.value = transferFailure(mutation.error.value).conflict === true
+      persist(() => saveReview(storageKey, draft.value!, false, conflict.value))
     }
   } finally {
     submitting = false
@@ -184,6 +191,7 @@ function preventUncertainLeave(event: BeforeUnloadEvent) {
   }
 }
 function resetDraft() {
+  conflict.value = false
   detailsVersion.value++
   try {
     resetGeneration = localStorage.getItem(DEMO_RESET_KEY) ?? ''
@@ -303,6 +311,7 @@ onBeforeRouteLeave(() => !(submitting || waitingToConfirm.value || failure.value
           :accounts="accounts.data.value"
           :beneficiaries="beneficiaries.data.value"
           :initial="detailsDraft ?? draft?.details"
+          :demo-defaults="mocksEnabled"
           @change="changed"
           @review="review"
         />

@@ -4,7 +4,7 @@ import {
   type BankingRepository,
   type BankingState,
 } from '../../use-cases/ports/BankingRepository'
-import { createSeedState } from '../seed/createSeedState'
+import { createSeedState, createNewDemoRecipientAccount } from '../seed/createSeedState'
 import { persistedBankingStateSchema, type PersistedBankingState } from './bankingStateSchema'
 
 export const BANKING_DATABASE_NAME = 'raksul-bank'
@@ -152,11 +152,15 @@ export function createIndexedDbBankingRepository(
           try {
             const parsed = persistedBankingStateSchema.safeParse(request.result)
             const current = parsed.success ? toBankingState(parsed.data) : createSeedState()
+            // Add the new demo directory account to existing installations without resetting history.
+            const newRecipient = createNewDemoRecipientAccount()
+            const needsDemoAccount = !current.accounts.some((item) => item.id === newRecipient.id)
+            if (needsDemoAccount) current.accounts.push(newRecipient)
             if (change) {
               // Invoke synchronously while IndexedDB's request event is active.
               // Returning a Promise also fails runtime state validation.
               persist(change(current))
-            } else if (!parsed.success) {
+            } else if (!parsed.success || needsDemoAccount) {
               persist(current)
             } else {
               result = current

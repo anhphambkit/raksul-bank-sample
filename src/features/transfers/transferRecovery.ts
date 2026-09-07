@@ -13,6 +13,9 @@ const detailsSchema = z.object({
   bankName: z.string().default(''),
   amount: z.string(),
   reference: z.string().max(140),
+  savedBeneficiaryId: z.string().optional(),
+  saveRecipient: z.boolean().optional(),
+  verifiedAccountNumber: z.string().optional(),
 })
 const draftSchema = z.object({
   request: transferRequestSchema,
@@ -32,7 +35,12 @@ const draftSchema = z.object({
 })
 const recoverySchema = z.discriminatedUnion('stage', [
   z.object({ stage: z.literal('DETAILS'), details: detailsSchema }),
-  z.object({ stage: z.literal('REVIEW'), draft: draftSchema, submitted: z.boolean() }),
+  z.object({
+    stage: z.literal('REVIEW'),
+    draft: draftSchema,
+    submitted: z.boolean(),
+    conflict: z.boolean().optional(),
+  }),
 ])
 export type RecoveryRecord = z.infer<typeof recoverySchema>
 export function recoveryKey(owner: string, demo: boolean) {
@@ -64,8 +72,13 @@ export function saveRecovery(key: string, record: RecoveryRecord) {
 export function saveDetails(key: string, details: TransferDetails) {
   saveRecovery(key, { stage: 'DETAILS', details })
 }
-export function saveReview(key: string, draft: TransferDraft, submitted: boolean) {
-  saveRecovery(key, { stage: 'REVIEW', draft, submitted })
+export function saveReview(
+  key: string,
+  draft: TransferDraft,
+  submitted: boolean,
+  conflict = false,
+) {
+  saveRecovery(key, { stage: 'REVIEW', draft, submitted, ...(conflict ? { conflict: true } : {}) })
 }
 export function clearRecovery(key: string, requestKey?: string) {
   const record = readRecovery(key)

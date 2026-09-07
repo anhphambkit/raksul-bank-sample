@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { IDBFactory } from 'fake-indexeddb'
+import { server } from '../../data/mock/server'
+import { createBankingHandlers } from '../../data/mock/handlers/banking'
+import { createIndexedDbBankingRepository } from '../../data/repositories/indexedDbBankingRepository'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
@@ -10,6 +14,10 @@ import {
   type TransferDetails,
   type TransferDraft,
 } from '../../features/transfers/transferDraft'
+beforeEach(() => {
+  const factory = new IDBFactory()
+  server.use(...createBankingHandlers(createIndexedDbBankingRepository(() => factory)))
+})
 const seed = createSeedState()
 const accounts = seed.accounts.filter((account) => account.ownerId === seed.customer.id)
 const details: TransferDetails = {
@@ -38,6 +46,76 @@ function form(initial?: TransferDetails) {
 }
 
 describe('transfer details', () => {
+  it('filters saved contacts by network, clears the selection on switching and rejects mismatched drafts', async () => {
+    const initial: TransferDetails = {
+      ...details,
+      recipientType: 'BENEFICIARY',
+      savedBeneficiaryId: 'beneficiary-alex',
+    }
+    const wrapper = form(initial)
+    const menu = wrapper.findComponent({ name: 'SelectMenu' })
+    expect(menu.props('items').map((item: { value: string }) => item.value)).toEqual([
+      'beneficiary-alex',
+      'beneficiary-jamie',
+    ])
+    wrapper
+      .findAllComponents({ name: 'RadioGroup' })[1]!
+      .vm.$emit('update:modelValue', 'OTHER_BANK')
+    await wrapper.vm.$nextTick()
+    expect(menu.props('modelValue')).toBeUndefined()
+    expect(menu.props('items').map((item: { value: string }) => item.value)).not.toContain(
+      'beneficiary-alex',
+    )
+    const mismatch: TransferDetails = { ...initial, recipientNetwork: 'OTHER_BANK' }
+    expect(() => prepareTransfer(mismatch, accounts, seed.beneficiaries)).toThrow(
+      'Choose an available saved recipient.',
+    )
+    expect(form(mismatch).findComponent({ name: 'SelectMenu' }).props('modelValue')).toBeUndefined()
+  })
+  it.each(['beneficiary-alex', 'beneficiary-rent'])(
+    'reviews saved recipient %s without re-entering details and restores the choice',
+    async (id) => {
+      const initial: TransferDetails = {
+        ...details,
+        recipientType: 'BENEFICIARY',
+        savedBeneficiaryId: id,
+        recipientNetwork: id === 'beneficiary-alex' ? 'SAME_BANK' : 'OTHER_BANK',
+      }
+      const wrapper = form(initial)
+      expect(wrapper.findComponent({ name: 'SelectMenu' }).props('modelValue')).toBe(id)
+      expect(wrapper.find('input[inputmode="numeric"]').exists()).toBe(false)
+      await wrapper.get('form').trigger('submit')
+      await vi.waitFor(() => expect(wrapper.emitted('review')).toHaveLength(1))
+      const draft = wrapper.emitted('review')![0]![0] as ReturnType<typeof prepareTransfer>
+      expect(draft.request.destination).toEqual({ kind: 'BENEFICIARY', beneficiaryId: id })
+      expect(draft.recipient.name).toBe(
+        seed.beneficiaries.find((item) => item.id === id)!.displayName,
+      )
+      expect(form(draft.details).findComponent({ name: 'SelectMenu' }).props('modelValue')).toBe(id)
+    },
+  )
+
+  it('carries explicit save consent into review and keeps it when returning to details', async () => {
+    const wrapper = form({
+      ...details,
+      recipientType: 'BENEFICIARY',
+      recipientNetwork: 'OTHER_BANK',
+      destinationId: '',
+      recipientAccountId: '987654321012',
+      recipientName: 'New Contact',
+      bankName: 'Techcombank',
+    })
+    expect(wrapper.get('[role="checkbox"]').attributes('aria-checked')).toBe('false')
+    wrapper.findComponent({ name: 'Checkbox' }).vm.$emit('update:modelValue', true)
+    await wrapper.get('form').trigger('submit')
+    await vi.waitFor(() => expect(wrapper.emitted('review')).toHaveLength(1))
+    const draft = wrapper.emitted('review')![0]![0] as ReturnType<typeof prepareTransfer>
+    expect(draft.request.destination).toMatchObject({
+      kind: 'NEW_BENEFICIARY',
+      saveRecipient: true,
+    })
+    expect(form(draft.details).get('[role="checkbox"]').attributes('aria-checked')).toBe('true')
+  })
   it('keeps review available so submission can explain invalid fields', async () => {
     const empty = form()
     const emptyReview = empty.findAll('button').find((item) => item.text() === 'Review transfer')!
@@ -143,7 +221,7 @@ describe('transfer details', () => {
     await input.setValue('')
     expect(input.element.value).toBe('')
   })
-  it('checks a same-bank Account ID and locks the verified account name', async () => {
+  it('checks a same-bank Account number and locks the verified account name', async () => {
     const wrapper = form()
     wrapper
       .findAllComponents({ name: 'Select' })[0]!
@@ -155,11 +233,11 @@ describe('transfer details', () => {
       .findAll('button')
       .find((item) => item.text() === 'Check account')!
       .trigger('click')
-    expect(wrapper.text()).toContain('Verified Raksul-bank account')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Verified Raksul-bank account'))
     expect(wrapper.text()).toContain('Alex Rivera')
     expect(wrapper.text()).not.toContain('Account holder name')
   })
-  it('shows one Account ID verification message at a time', async () => {
+  it('shows one Account number verification message at a time', async () => {
     const wrapper = form()
     wrapper
       .findAllComponents({ name: 'Select' })[0]!
@@ -168,9 +246,11 @@ describe('transfer details', () => {
     await wrapper.vm.$nextTick()
     await wrapper.get('input[inputmode="decimal"]').setValue('5')
     await wrapper.get('form').trigger('submit')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Enter an Account ID'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Enter an account number'))
     expect(
-      wrapper.findAll('[data-slot="error"]').filter((item) => item.text().includes('Account ID')),
+      wrapper
+        .findAll('[data-slot="error"]')
+        .filter((item) => item.text().toLowerCase().includes('account number')),
     ).toHaveLength(1)
     await wrapper.get('input[inputmode="numeric"]').setValue('123')
     await wrapper
@@ -178,7 +258,9 @@ describe('transfer details', () => {
       .find((item) => item.text() === 'Check account')!
       .trigger('click')
     expect(
-      wrapper.findAll('[data-slot="error"]').filter((item) => item.text().includes('Account ID')),
+      wrapper
+        .findAll('[data-slot="error"]')
+        .filter((item) => item.text().toLowerCase().includes('account number')),
     ).toHaveLength(1)
   })
   it('prepares beneficiary identity from the verified same-bank account', () => {
@@ -214,6 +296,7 @@ describe('transfer details', () => {
     )
     expect(draft.request.destination).toEqual({
       kind: 'NEW_BENEFICIARY',
+      saveRecipient: false,
       beneficiary: {
         displayName: 'New Recipient',
         bankName: 'Techcombank',

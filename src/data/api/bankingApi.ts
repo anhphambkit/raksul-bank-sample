@@ -1,3 +1,4 @@
+import type { CreateBeneficiaryRequest } from '../../contracts/beneficiaries'
 import type { Customer } from '../../domain/customers/customer'
 import type { Account } from '../../domain/accounts/account'
 import type { Beneficiary } from '../../domain/beneficiaries/beneficiary'
@@ -73,6 +74,11 @@ export function createBankingApi(
         if (value !== undefined) params.set(key, String(value))
       return request<PaginatedTransactions>(`transactions?${params}`, signal)
     },
+    lookupRecipient: (accountNumber, signal) =>
+      request<CreateBeneficiaryRequest>(
+        `recipient-accounts/${encodeURIComponent(accountNumber)}`,
+        signal,
+      ),
     beneficiaries: (signal?: AbortSignal) => request<Beneficiary[]>('beneficiaries', signal),
     createBeneficiary: (body) => request<Beneficiary>('beneficiaries', undefined, 'POST', body),
     executeTransfer: (body: TransferRequest) =>

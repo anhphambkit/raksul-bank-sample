@@ -3,7 +3,7 @@ import { DomainError } from '../../domain/errors'
 import { creditBalance, debitBalance } from '../../domain/money/money'
 import type { Transfer, TransferDestination } from '../../domain/transfers/transfer'
 import { validateTransfer } from '../../domain/transfers/validateTransfer'
-import { saveBeneficiary } from '../beneficiaries/createBeneficiary'
+import { resolveBeneficiary, saveBeneficiary } from '../beneficiaries/createBeneficiary'
 import type { BankingRepository } from '../ports/BankingRepository'
 
 export class TransferError extends Error {
@@ -47,6 +47,11 @@ export async function executeTransfer(
     request.amountMinor,
     request.currency,
     request.reference ?? '',
+    // Preserve fingerprints of pre-existing saved-recipient requests.
+    ...(request.destination.kind === 'NEW_BENEFICIARY' &&
+    request.destination.saveRecipient === false
+      ? ['DO_NOT_SAVE_RECIPIENT']
+      : []),
   ])
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
   const requestHash = Array.from(new Uint8Array(digest), (byte) =>
@@ -77,7 +82,11 @@ export async function executeTransfer(
       const requestedBeneficiary = request.destination
       const beneficiary =
         requestedBeneficiary.kind === 'NEW_BENEFICIARY'
-          ? saveBeneficiary(state, requestedBeneficiary.beneficiary, beneficiaryId)
+          ? (requestedBeneficiary.saveRecipient === false ? resolveBeneficiary : saveBeneficiary)(
+              state,
+              requestedBeneficiary.beneficiary,
+              beneficiaryId,
+            )
           : state.beneficiaries.find(
               (item) =>
                 item.id === requestedBeneficiary.beneficiaryId &&

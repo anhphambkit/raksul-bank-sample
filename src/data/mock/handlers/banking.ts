@@ -1,3 +1,4 @@
+import { lookupRecipient } from '../../../use-cases/beneficiaries/lookupRecipient'
 import { createBeneficiary } from '../../../use-cases/beneficiaries/createBeneficiary'
 import { beneficiaryRequestSchema } from '../../api/beneficiaryRequestSchema'
 import { DomainError } from '../../../domain/errors'
@@ -55,6 +56,9 @@ export function createBankingHandlers(repository: BankingRepository) {
     return result
   }
   return [
+    http.get('*/api/recipient-accounts/:accountNumber', ({ params }) =>
+      respond(() => lookupRecipient(repository, String(params.accountNumber))),
+    ),
     http.post('*/api/beneficiaries', async ({ request }) => {
       const parsed = beneficiaryRequestSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)

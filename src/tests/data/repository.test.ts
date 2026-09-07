@@ -64,7 +64,7 @@ describe('deterministic banking seed', () => {
   it('has the requested shape, variety and valid references', () => {
     const state = createSeedState()
     expect(persistedBankingStateSchema.safeParse(persisted(state)).success).toBe(true)
-    expect(state.accounts).toHaveLength(5)
+    expect(state.accounts).toHaveLength(6)
     expect(state.beneficiaries).toHaveLength(6)
     expect(state.transactions).toHaveLength(100)
     expect(state.transfers).toHaveLength(6)
@@ -87,7 +87,7 @@ describe('deterministic banking seed', () => {
       expect(account.balanceMinor).toBe(SEED_OPENING_BALANCES[account.id]! + net)
     }
     expect(state.accounts.map((account) => account.balanceMinor)).toEqual([
-      1_375_105, 1_661_100, 41_400, 200_000, 175_000,
+      1_375_105, 1_661_100, 41_400, 200_000, 175_000, 0,
     ])
   })
 

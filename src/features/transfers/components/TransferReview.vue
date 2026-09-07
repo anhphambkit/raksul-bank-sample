@@ -3,10 +3,11 @@ import UButton from '@nuxt/ui/components/Button.vue'
 import MoneyDisplay from '@/shared/components/MoneyDisplay.vue'
 import MaskedAccountNumber from '@/shared/components/MaskedAccountNumber.vue'
 import type { TransferDraft } from '../transferDraft'
+import type { TransferFailure } from '../transferFailure'
 defineProps<{
   draft: TransferDraft
   pending: boolean
-  failure?: { uncertain: boolean; message: string }
+  failure?: TransferFailure
 }>()
 defineEmits<{ back: []; confirm: [] }>()
 </script>
@@ -60,6 +61,13 @@ defineEmits<{ back: []; confirm: [] }>()
     >
       {{ failure.message }}
     </p>
+    <p v-if="draft.request.destination.kind === 'NEW_BENEFICIARY'" class="text-sm text-muted">
+      {{
+        draft.request.destination.saveRecipient !== false
+          ? 'This recipient will be saved after a successful transfer.'
+          : 'This recipient will not be saved.'
+      }}
+    </p>
     <p v-if="pending" role="status" class="text-sm text-muted">
       Confirming your transfer. Please keep this page open.
     </p>
@@ -73,7 +81,11 @@ defineEmits<{ back: []; confirm: [] }>()
       >
         Back
       </UButton>
+      <UButton v-if="failure?.conflict" to="/transactions" size="lg" icon="i-lucide-list">
+        Check transaction activity
+      </UButton>
       <UButton
+        v-else
         size="lg"
         :loading="pending"
         :disabled="pending"

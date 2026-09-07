@@ -100,6 +100,61 @@ describe('atomic transfer execution', () => {
     expect(await repository.load()).toEqual(before)
   })
 
+  it.each([true, false])(
+    'honors saveRecipient=%s atomically and replays without duplicate contacts or debits',
+    async (saveRecipient) => {
+      const before = await repository.load()
+      const input = request({ destination: { ...newBeneficiary, saveRecipient } })
+      const first = await executeTransfer(repository, input)
+      expect(await executeTransfer(repository, input)).toEqual(first)
+      const after = await createIndexedDbBankingRepository(() => factory).load()
+      expect(after.accounts[0]!.balanceMinor).toBe(before.accounts[0]!.balanceMinor - 1050)
+      expect(after.transfers).toHaveLength(before.transfers.length + 1)
+      expect(after.beneficiaries).toHaveLength(before.beneficiaries.length + Number(saveRecipient))
+      expect(first.destination).toMatchObject({
+        kind: 'EXTERNAL_ACCOUNT',
+        recipientSnapshot: { name: 'New Recipient' },
+      })
+      await expect(
+        executeTransfer(
+          repository,
+          request({ destination: { ...newBeneficiary, saveRecipient: !saveRecipient } }),
+        ),
+      ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' })
+      expect(await repository.load()).toEqual(after)
+    },
+  )
+
+  it('keeps legacy save-by-default requests replayable with explicit save consent', async () => {
+    const oldRequest = request({ destination: newBeneficiary })
+    const first = await executeTransfer(repository, oldRequest)
+    expect(
+      await executeTransfer(
+        repository,
+        request({ destination: { ...newBeneficiary, saveRecipient: true } }),
+      ),
+    ).toEqual(first)
+  })
+
+  it('transfers externally when the account number also belongs to this bank', async () => {
+    const before = await repository.load()
+    const destination = {
+      ...newBeneficiary,
+      saveRecipient: false,
+      beneficiary: {
+        ...newBeneficiary.beneficiary,
+        accountNumber: before.accounts[1]!.accountNumber,
+      },
+    }
+    const transfer = await executeTransfer(repository, request({ destination }))
+    const after = await repository.load()
+    expect(transfer.destination.kind).toBe('EXTERNAL_ACCOUNT')
+    expect(after.accounts[0]!.balanceMinor).toBe(before.accounts[0]!.balanceMinor - 1050)
+    expect(after.accounts.slice(1)).toEqual(before.accounts.slice(1))
+    expect(after.transactions.filter((item) => item.transferId === transfer.id)).toHaveLength(1)
+    expect(after.beneficiaries).toEqual(before.beneficiaries)
+  })
+
   it.each([
     [{ amountMinor: 0 }, 'INVALID_AMOUNT'],
     [{ amountMinor: -1 }, 'INVALID_AMOUNT'],

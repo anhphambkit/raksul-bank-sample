@@ -1,3 +1,4 @@
+import { DEMO_NEW_SAME_BANK_NUMBER } from '../../shared/config/demoRecipients'
 import type { BankingState } from '../../use-cases/ports/BankingRepository'
 import type { Account } from '../../domain/accounts/account'
 import type { Transaction } from '../../domain/transactions/transaction'
@@ -9,7 +10,23 @@ export const SEED_OPENING_BALANCES: Readonly<Record<string, number>> = Object.fr
   'account-frozen': 42_000,
   'account-internal-alex': 200_000,
   'account-internal-jamie': 175_000,
+  'account-internal-jordan': 0,
 })
+
+/** Additive demo fixture, also used to upgrade existing local snapshots. */
+export function createNewDemoRecipientAccount(): Account {
+  return {
+    id: 'account-internal-jordan',
+    ownerId: 'customer-jordan',
+    displayName: 'Jordan Lee',
+    type: 'CHECKING',
+    accountNumber: DEMO_NEW_SAME_BANK_NUMBER,
+    status: 'ACTIVE',
+    currency: 'USD',
+    balanceMinor: 0,
+    createdAt: '2025-01-15T09:00:00.000Z',
+  }
+}
 
 /** Fixed fictional fixture; returns fresh objects and never reads the clock or storage. */
 export function createSeedState(): BankingState {
@@ -52,6 +69,7 @@ export function createSeedState(): BankingState {
       ),
       account('account-internal-alex', 'customer-alex', 'Alex Rivera', 'CHECKING', '200000001842'),
       account('account-internal-jamie', 'customer-jamie', 'Jamie Park', 'SAVINGS', '200000006027'),
+      createNewDemoRecipientAccount(),
     ],
     transactions: [],
     transfers: [],

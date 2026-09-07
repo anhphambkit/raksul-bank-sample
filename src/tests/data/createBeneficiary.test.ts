@@ -10,6 +10,20 @@ const input = {
   currency: 'USD' as const,
 }
 describe('recipient creation', () => {
+  it('scopes account numbers by bank and never links an external contact to a local account', async () => {
+    const factory = new IDBFactory()
+    const repository = createIndexedDbBankingRepository(() => factory)
+    const before = await repository.load()
+    for (const account of before.accounts) {
+      const contact = await createBeneficiary(repository, {
+        ...input,
+        accountNumber: account.accountNumber,
+      })
+      expect(contact.internalAccountId).toBeUndefined()
+      expect(contact.bankName).toBe('Harbor Bank')
+    }
+    expect((await repository.load()).accounts).toEqual(before.accounts)
+  })
   it('deduplicates concurrent saves and supports a persisted transfer to the new recipient', async () => {
     const factory = new IDBFactory()
     const repo = createIndexedDbBankingRepository(() => factory)

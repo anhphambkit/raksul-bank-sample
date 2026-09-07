@@ -15,6 +15,7 @@ export interface BankingApi {
     query?: Partial<TransactionQuery>,
     signal?: AbortSignal,
   ): Promise<PaginatedTransactions>
+  lookupRecipient(accountNumber: string, signal?: AbortSignal): Promise<CreateBeneficiaryRequest>
   beneficiaries(signal?: AbortSignal): Promise<Beneficiary[]>
   createBeneficiary(request: CreateBeneficiaryRequest): Promise<Beneficiary>
   executeTransfer(request: TransferRequest): Promise<TransferReceipt>

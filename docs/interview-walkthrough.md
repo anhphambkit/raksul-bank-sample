@@ -29,7 +29,7 @@ Opening line:
 
 ### Transfer
 
-1. Choose an active source and either another owned account or a saved recipient.
+1. Choose an active source and either another owned account or **Someone else → Saved recipient**. Search for Alex Rivera to try a same-bank payment without entering account details. For manual same-bank entry, Alex’s demo account number is `200000001842`.
 2. Enter an exact decimal amount, review the masked details and confirm.
 3. Follow the receipt to activity or accounts and show the updated state.
 
