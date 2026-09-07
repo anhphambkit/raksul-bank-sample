@@ -76,10 +76,10 @@ defineSlots<{
     </template>
     <div
       v-else-if="variant === 'transactions'"
-      class="bank-surface overflow-hidden rounded-2xl border border-default bg-white"
+      class="bank-surface overflow-hidden rounded-2xl border border-default bg-default"
     >
       <div
-        class="flex h-12 items-center justify-between gap-5 border-b border-default bg-slate-50/80 px-5"
+        class="flex h-12 items-center justify-between gap-5 border-b border-default bg-elevated/80 px-5"
       >
         <USkeleton class="bank-skeleton h-3 w-28" />
         <USkeleton class="bank-skeleton h-3 w-20" />

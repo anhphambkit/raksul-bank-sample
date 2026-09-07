@@ -93,13 +93,13 @@ const scope = computed(() => ({
   >
     <div class="col-span-2 min-w-0 md:col-span-1">
       <slot name="total" v-bind="scope">
-        <h2 class="flex items-center gap-2 text-sm font-medium text-slate-600">
-          <UIcon name="i-lucide-wallet" class="size-4 text-indigo-600" aria-hidden="true" />
+        <h2 class="flex items-center gap-2 text-sm font-medium text-muted">
+          <UIcon name="i-lucide-wallet" class="size-4 text-primary" aria-hidden="true" />
           Total balance · USD
         </h2>
         <MoneyDisplay
           :amount-minor="total"
-          class="mt-3 block text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl"
+          class="mt-3 block text-4xl font-semibold tracking-tight text-highlighted sm:text-5xl"
         />
         <p class="mt-2 text-sm text-muted">
           Across {{ accounts.length }} {{ accounts.length === 1 ? 'account' : 'accounts' }},

@@ -34,7 +34,7 @@ const styles = tv({
   slots: {
     loading: '',
     error: 'rounded-xl border border-error/25 bg-error/5 p-6',
-    empty: 'rounded-xl border border-default bg-white px-6 py-12 text-center',
+    empty: 'rounded-xl border border-default bg-default px-6 py-12 text-center',
     content: 'bank-data-content relative',
     refreshing: 'bank-refresh-indicator',
   },

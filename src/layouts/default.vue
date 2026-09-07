@@ -91,11 +91,11 @@ watch(
         content: { onCloseAutoFocus: onMenuClose },
       }"
       :ui="{
-        root: 'bank-sidebar bg-white',
+        root: 'bank-sidebar bg-default',
         header: 'px-5 gap-3',
         body: 'px-3 pt-6',
         footer: 'border-t border-default p-5',
-        content: 'w-80 max-w-[calc(100vw-2rem)] bg-white',
+        content: 'w-80 max-w-[calc(100vw-2rem)] bg-default',
       }"
     >
       <template #header>
@@ -152,7 +152,7 @@ watch(
       <template #header>
         <UDashboardNavbar
           as="header"
-          :ui="{ root: 'bg-white px-4 sm:px-6', left: 'min-w-0 gap-3' }"
+          :ui="{ root: 'bg-default px-4 sm:px-6', left: 'min-w-0 gap-3' }"
         >
           <template #toggle>
             <UButton
@@ -176,10 +176,14 @@ watch(
             </nav>
           </template>
           <template #right>
+            <ClientOnly>
+              <UColorModeButton />
+              <template #fallback><span class="size-8" aria-hidden="true" /></template>
+            </ClientOnly>
             <UBadge
               color="primary"
               variant="soft"
-              class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700"
+              class="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
             >
               Preview
             </UBadge>

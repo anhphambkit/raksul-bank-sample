@@ -12,6 +12,7 @@ export default defineConfigWithVueTs(
   {
     ignores: [
       'dist/**',
+      'storybook-static/**',
       '.nuxt/**',
       '.output/**',
       'coverage/**',

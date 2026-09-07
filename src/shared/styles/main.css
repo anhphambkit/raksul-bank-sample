@@ -306,3 +306,45 @@ body {
     display: none;
   }
 }
+
+.dark {
+  color-scheme: dark;
+  --ui-primary: #a5b4fc;
+  --bank-canvas: #0b1220;
+  --ui-bg: #111c30;
+  --ui-bg-elevated: #1b2940;
+  --ui-text-highlighted: #f1f5f9;
+  --ui-text-muted: #aabbd0;
+  --ui-border: #334155;
+}
+.dark .bank-summary {
+  border-color: #384768;
+  background: radial-gradient(ellipse at 100% 0%, #303f70 0%, transparent 65%), #19253e;
+}
+.dark .bank-nav-link[aria-current='page'] {
+  color: #c7d2fe;
+  background: #293653;
+}
+.dark .bank-transaction-table tbody tr:hover,
+.dark .bank-transaction-list > li:hover {
+  background: #1b2940;
+}
+.dark .bank-transaction-icon--credit {
+  color: #6ee7b7;
+  background: #143b35;
+}
+.dark .bank-transaction-icon--debit {
+  color: #c7d2fe;
+  background: #2b3559;
+}
+.dark .bank-card-skeleton {
+  background: #19253e;
+}
+.dark .bank-skeleton {
+  background: #334155;
+}
+.dark .bank-refresh-indicator {
+  background: #293653;
+  color: #c7d2fe;
+  border-color: #46567b;
+}

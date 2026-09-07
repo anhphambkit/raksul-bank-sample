@@ -23,7 +23,12 @@
     "test:ssr": "node scripts/verify-ssr.mjs",
     "test:e2e": "npm run build && playwright test",
     "test:e2e:built": "playwright test",
-    "test:all": "npm run test -- --run && npm run build && npm run test:ssr && npm run test:e2e:built"
+    "test:all": "npm run test -- --run && npm run build && npm run test:ssr && npm run test:e2e:built",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build",
+    "test:visual": "playwright test --config playwright.visual.config.mjs",
+    "test:visual:update": "playwright test --config playwright.visual.config.mjs --update-snapshots",
+    "test:storybook": "playwright test --config playwright.storybook.config.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "4.11.0",
@@ -40,6 +45,7 @@
     "@eslint/js": "10.0.1",
     "@iconify-json/lucide": "1.2.129",
     "@playwright/test": "1.63.0",
+    "@storybook/vue3-vite": "10.6.0",
     "@types/node": "^24.0.0",
     "@vitejs/plugin-vue": "6.0.8",
     "@vue/eslint-config-typescript": "14.9.0",
@@ -50,6 +56,7 @@
     "fake-indexeddb": "6.2.5",
     "jsdom": "26.1.0",
     "prettier": "3.9.6",
+    "storybook": "10.6.0",
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "vitest": "5.0.0",

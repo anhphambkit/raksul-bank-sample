@@ -126,7 +126,7 @@ function clear() {
 <template>
   <form
     aria-label="Transaction filters"
-    class="bank-surface transaction-filters rounded-2xl border border-default bg-white p-3 sm:p-4"
+    class="bank-surface transaction-filters rounded-2xl border border-default bg-default p-3 sm:p-4"
     @submit.prevent="apply"
   >
     <div class="filter-grid">

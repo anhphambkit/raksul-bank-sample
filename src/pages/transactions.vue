@@ -80,7 +80,7 @@ function retry() {
             :transactions="data.data"
             :accounts="accounts.data.value ?? []"
           />
-          <div v-else class="rounded-xl border border-default bg-white px-6 py-12 text-center">
+          <div v-else class="rounded-xl border border-default bg-default px-6 py-12 text-center">
             <template v-if="data.pagination.totalItems > 0">
               <h2 class="text-lg font-semibold text-highlighted">This page has no transactions</h2>
               <p class="mt-2 text-sm text-muted">

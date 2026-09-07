@@ -7,7 +7,8 @@ export default defineNuxtConfig({
   modules: ['@nuxt/ui'],
   css: ['~/shared/styles/main.css'],
   devtools: { enabled: false },
-  ui: { colorMode: false, fonts: false },
+  ui: { fonts: false },
+  colorMode: { preference: 'light', fallback: 'light', classSuffix: '' },
   icon: { clientBundle: { scan: true } },
   app: {
     head: {

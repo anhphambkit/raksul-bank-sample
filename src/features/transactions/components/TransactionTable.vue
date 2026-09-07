@@ -87,10 +87,11 @@ const types = { TRANSFER: 'Transfer', CARD: 'Card', CASH: 'Cash', FEE: 'Fee', IN
 const theme = tv({
   slots: {
     root: '',
-    table: 'bank-surface bank-transaction-table hidden rounded-2xl border border-default bg-white',
-    list: 'bank-surface bank-transaction-list divide-y divide-default rounded-2xl border border-default bg-white',
+    table:
+      'bank-surface bank-transaction-table hidden rounded-2xl border border-default bg-default',
+    list: 'bank-surface bank-transaction-list divide-y divide-default rounded-2xl border border-default bg-default',
     item: 'space-y-3 p-4 sm:p-5',
-    th: 'bg-slate-50 px-4 py-3 text-xs font-medium text-muted',
+    th: 'bg-elevated px-4 py-3 text-xs font-medium text-muted',
     td: 'px-4 py-4 text-sm',
   },
   variants: {
