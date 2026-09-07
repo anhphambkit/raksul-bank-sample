@@ -95,3 +95,5 @@ Add a separate Playwright configuration/environment for the real test backend wi
 `scripts/e2e/enhancements.spec.mjs` covers theme persistence/keyboard toggle, adding and selecting a new recipient through the UI, draft restoration and same-key replay after a simulated committed response loss/page close, plus automatic balance refresh/reset in a second tab.
 
 Build the app before `npm run test:visual` and build Storybook before `npm run test:storybook`. Both use Chromium; see [enhancement commands and baseline rules](enhancements.md). Cross-device synchronization is deferred and is not claimed by any test.
+
+Storybook stories use seven component-specific CSF files and typed args. The third Storybook browser test verifies the component index and edits amountMinor via the manager Controls panel, asserting the new money value in the preview iframe.
