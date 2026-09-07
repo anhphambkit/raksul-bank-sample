@@ -2,10 +2,14 @@
 import { computed, useId } from 'vue'
 import UInput from '@nuxt/ui/components/Input.vue'
 import { decimalToMinor, assertAmountMinor } from '@/domain/money/money'
-const props = withDefaults(defineProps<{ id?: string; disabled?: boolean }>(), {
-  id: undefined,
-  disabled: false,
-})
+const props = withDefaults(
+  defineProps<{ id?: string; disabled?: boolean; showError?: boolean }>(),
+  {
+    id: undefined,
+    disabled: false,
+    showError: true,
+  },
+)
 const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{ amount: [value: number | undefined] }>()
 const fallbackId = useId()
@@ -40,14 +44,21 @@ function update(value: string | number) {
       autocomplete="off"
       placeholder="0.00"
       :disabled="disabled"
-      :aria-invalid="error ? true : undefined"
-      :aria-describedby="error ? `${inputId}-error` : undefined"
+      :aria-invalid="props.showError && error ? true : undefined"
+      :aria-describedby="props.showError && error ? `${inputId}-error` : undefined"
       class="w-full"
       @update:model-value="update"
     >
       <template #leading><span class="text-muted">$</span></template>
       <template #trailing><span class="text-xs text-muted">USD</span></template>
     </UInput>
-    <p v-if="error" :id="`${inputId}-error`" role="alert" class="text-sm text-error">{{ error }}</p>
+    <p
+      v-if="props.showError && error"
+      :id="`${inputId}-error`"
+      role="alert"
+      class="text-sm text-error"
+    >
+      {{ error }}
+    </p>
   </div>
 </template>

@@ -7,6 +7,10 @@ const detailsSchema = z.object({
   sourceAccountId: z.string(),
   recipientType: z.enum(['OWN_ACCOUNT', 'BENEFICIARY']),
   destinationId: z.string(),
+  recipientNetwork: z.enum(['SAME_BANK', 'OTHER_BANK']).default('SAME_BANK'),
+  recipientAccountId: z.string().default(''),
+  recipientName: z.string().default(''),
+  bankName: z.string().default(''),
   amount: z.string(),
   reference: z.string().max(140),
 })

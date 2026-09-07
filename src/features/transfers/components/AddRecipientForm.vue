@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import UForm from '@nuxt/ui/components/Form.vue'
 import UFormField from '@nuxt/ui/components/FormField.vue'
@@ -17,6 +17,7 @@ const state = reactive<CreateBeneficiaryRequest>({
   accountNumber: '',
   currency: 'USD',
 })
+const formReady = computed(() => beneficiaryRequestSchema.safeParse(state).success)
 const mutation = useMutation({
   mutationFn: () => api.createBeneficiary({ ...state }),
   retry: false,
@@ -30,7 +31,13 @@ function save() {
 }
 </script>
 <template>
-  <UForm :schema="beneficiaryRequestSchema" :state="state" class="space-y-5" @submit="save">
+  <UForm
+    :schema="beneficiaryRequestSchema"
+    :state="state"
+    :validate-on="['blur', 'input']"
+    class="space-y-5"
+    @submit="save"
+  >
     <h2 class="text-xl font-semibold text-highlighted">Add a recipient</h2>
     <p class="text-sm text-muted">
       Save a USD recipient for this and future transfers. External account details are simulated,
@@ -58,7 +65,7 @@ function save() {
       <UButton
         type="submit"
         :loading="mutation.isPending.value"
-        :disabled="mutation.isPending.value"
+        :disabled="mutation.isPending.value || !formReady"
       >
         Save recipient
       </UButton>

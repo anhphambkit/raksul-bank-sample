@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { mount } from '@vue/test-utils'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import ui from '@nuxt/ui/vue-plugin'
 import TransferDetailsForm from '../../features/transfers/components/TransferDetailsForm.vue'
 import { createSeedState } from '../../data/seed/createSeedState'
@@ -15,6 +16,10 @@ const details: TransferDetails = {
   sourceAccountId: 'account-checking',
   recipientType: 'OWN_ACCOUNT',
   destinationId: 'account-savings',
+  recipientNetwork: 'SAME_BANK',
+  recipientAccountId: '',
+  recipientName: '',
+  bankName: '',
   amount: '0.29',
   reference: '  Savings  ',
 }
@@ -22,11 +27,26 @@ function form(initial?: TransferDetails) {
   return mount(TransferDetailsForm, {
     props: { accounts, beneficiaries: seed.beneficiaries, initial },
     attachTo: document.body,
-    global: { plugins: [ui, createRouter({ history: createMemoryHistory(), routes: [] })] },
+    global: {
+      plugins: [
+        ui,
+        createRouter({ history: createMemoryHistory(), routes: [] }),
+        [VueQueryPlugin, { queryClient: new QueryClient() }],
+      ],
+    },
   })
 }
 
 describe('transfer details', () => {
+  it('keeps review disabled until the form is valid', async () => {
+    const empty = form()
+    const emptyReview = empty.findAll('button').find((item) => item.text() === 'Review transfer')!
+    expect(emptyReview.attributes()).toHaveProperty('disabled')
+
+    const valid = form(details)
+    const validReview = valid.findAll('button').find((item) => item.text() === 'Review transfer')!
+    expect(validReview.attributes()).not.toHaveProperty('disabled')
+  })
   it('emits a validated exact-cent draft only after review, without submitting an API mutation', async () => {
     const wrapper = form(details)
     expect(wrapper.emitted('review')).toBeUndefined()
@@ -43,7 +63,7 @@ describe('transfer details', () => {
     expect(draft.recipient.name).toBe('Rainy Day Savings')
     expect(wrapper.html()).not.toContain(accounts[0]!.accountNumber)
   })
-  it('excludes the source and frozen destination, and clears the recipient when choices change', async () => {
+  it('excludes the source and frozen destination, then shows the same/other bank choice', async () => {
     const wrapper = form(details)
     const selects = wrapper.findAllComponents({ name: 'Select' })
     expect(selects[0]!.props('items')).toEqual(
@@ -56,10 +76,10 @@ describe('transfer details', () => {
     ])
     wrapper.findComponent({ name: 'RadioGroup' }).vm.$emit('update:modelValue', 'BENEFICIARY')
     await wrapper.vm.$nextTick()
-    expect(selects[1]!.props('modelValue')).toBe('')
-    expect(selects[1]!.props('items')).toHaveLength(6)
     expect(wrapper.text()).toContain('Someone else')
-    expect(wrapper.text()).not.toMatch(/internal|external/i)
+    expect(wrapper.text()).toContain('Same bank')
+    expect(wrapper.text()).toContain('Other bank')
+    expect(wrapper.text()).toContain('Check account')
   })
   it.each(['1.005', '0', '99999999', '-2'])(
     'blocks invalid or unaffordable amount %s with an inline error',
@@ -93,16 +113,77 @@ describe('transfer details', () => {
     )
     expect(wrapper.emitted('review')).toBeUndefined()
   })
-  it('prepares beneficiary identity from the loaded recipient, not entered account details', () => {
+  it('validates an edited amount on blur without duplicating its message', async () => {
+    const wrapper = form({ ...details, amount: '1.005' })
+    const input = wrapper.get('input[inputmode="decimal"]')
+    await input.trigger('blur')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('up to 2 decimal places'))
+    expect(
+      wrapper
+        .findAll('[data-slot="error"]')
+        .filter((item) => item.text().includes('up to 2 decimal places')),
+    ).toHaveLength(1)
+    expect(
+      wrapper
+        .findAll('button')
+        .find((item) => item.text() === 'Review transfer')!
+        .attributes(),
+    ).toHaveProperty('disabled')
+  })
+  it('checks a same-bank Account ID and locks the verified account name', async () => {
+    const wrapper = form()
+    wrapper
+      .findAllComponents({ name: 'Select' })[0]!
+      .vm.$emit('update:modelValue', 'account-checking')
+    wrapper.findComponent({ name: 'RadioGroup' }).vm.$emit('update:modelValue', 'BENEFICIARY')
+    await wrapper.vm.$nextTick()
+    await wrapper.get('input[inputmode="numeric"]').setValue('200000001842')
+    await wrapper
+      .findAll('button')
+      .find((item) => item.text() === 'Check account')!
+      .trigger('click')
+    expect(wrapper.text()).toContain('Verified Raksul-bank account')
+    expect(wrapper.text()).toContain('Alex Rivera')
+    expect(wrapper.text()).not.toContain('Account holder name')
+  })
+  it('shows one Account ID verification message at a time', async () => {
+    const wrapper = form()
+    wrapper
+      .findAllComponents({ name: 'Select' })[0]!
+      .vm.$emit('update:modelValue', 'account-checking')
+    wrapper.findComponent({ name: 'RadioGroup' }).vm.$emit('update:modelValue', 'BENEFICIARY')
+    await wrapper.vm.$nextTick()
+    await wrapper.get('input[inputmode="decimal"]').setValue('5')
+    await wrapper.get('form').trigger('submit')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Enter an Account ID'))
+    expect(
+      wrapper.findAll('[data-slot="error"]').filter((item) => item.text().includes('Account ID')),
+    ).toHaveLength(1)
+    await wrapper.get('input[inputmode="numeric"]').setValue('123')
+    await wrapper
+      .findAll('button')
+      .find((item) => item.text() === 'Check account')!
+      .trigger('click')
+    expect(
+      wrapper.findAll('[data-slot="error"]').filter((item) => item.text().includes('Account ID')),
+    ).toHaveLength(1)
+  })
+  it('prepares beneficiary identity from the verified same-bank account', () => {
     const draft = prepareTransfer(
-      { ...details, recipientType: 'BENEFICIARY', destinationId: 'beneficiary-rent' },
+      {
+        ...details,
+        recipientType: 'BENEFICIARY',
+        destinationId: 'beneficiary-alex',
+        recipientAccountId: '200000001842',
+        recipientName: 'Alex Rivera',
+      },
       accounts,
       seed.beneficiaries,
     )
     expect(draft.request.destination).toEqual({
       kind: 'BENEFICIARY',
-      beneficiaryId: 'beneficiary-rent',
+      beneficiaryId: 'beneficiary-alex',
     })
-    expect(draft.recipient).toMatchObject({ name: 'Maple Apartments', bankName: 'Harbor Bank' })
+    expect(draft.recipient).toMatchObject({ name: 'Alex Rivera', bankName: 'Raksul-bank' })
   })
 })

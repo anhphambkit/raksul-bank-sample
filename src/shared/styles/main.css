@@ -152,6 +152,19 @@ body {
   box-shadow: 0 4px 24px -16px #24377530;
 }
 
+.bank-transfer-shell {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--ui-primary) 11%, transparent) 0,
+      transparent 19rem
+    ),
+    var(--ui-bg);
+  box-shadow:
+    0 18px 50px -32px #24377555,
+    0 1px 2px #0f172a0a;
+}
+
 .bank-transaction-icon {
   display: inline-flex;
   width: 2.25rem;

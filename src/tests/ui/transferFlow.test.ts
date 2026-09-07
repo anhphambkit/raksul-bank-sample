@@ -59,10 +59,26 @@ async function details(wrapper: VueWrapper, beneficiary?: string, amount = '10.5
   if (beneficiary) {
     wrapper.findComponent({ name: 'RadioGroup' }).vm.$emit('update:modelValue', 'BENEFICIARY')
     await wrapper.vm.$nextTick()
+    const recipient = createSeedState().beneficiaries.find((item) => item.id === beneficiary)!
+    if (recipient.internalAccountId) {
+      await wrapper.get('input[inputmode="numeric"]').setValue(recipient.accountNumber)
+      await button(wrapper, 'Check account').trigger('click')
+    } else {
+      wrapper
+        .findAllComponents({ name: 'RadioGroup' })[1]!
+        .vm.$emit('update:modelValue', 'OTHER_BANK')
+      await wrapper.vm.$nextTick()
+      wrapper
+        .findAllComponents({ name: 'Select' })[1]!
+        .vm.$emit('update:modelValue', recipient.bankName)
+      await wrapper.get('input[inputmode="numeric"]').setValue(recipient.accountNumber)
+      await wrapper.get('input[maxlength="80"]').setValue(recipient.displayName)
+    }
+  } else {
+    wrapper
+      .findAllComponents({ name: 'Select' })[1]!
+      .vm.$emit('update:modelValue', 'account-savings')
   }
-  wrapper
-    .findAllComponents({ name: 'Select' })[1]!
-    .vm.$emit('update:modelValue', beneficiary ?? 'account-savings')
   await wrapper.get('input[inputmode="decimal"]').setValue(amount)
   await wrapper.get('input[maxlength="140"]').setValue('September transfer')
   await wrapper.get('form').trigger('submit')

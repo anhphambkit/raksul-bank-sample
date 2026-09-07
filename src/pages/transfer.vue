@@ -36,6 +36,8 @@ const mutation = useTransfer()
 const draft = ref<TransferDraft>()
 const receipt = ref<Receipt>()
 const stage = ref<'DETAILS' | 'REVIEW' | 'COMPLETE'>('DETAILS')
+const stages = ['DETAILS', 'REVIEW', 'COMPLETE'] as const
+const stageIndex = computed(() => stages.indexOf(stage.value))
 const failure = computed(() =>
   mutation.error.value
     ? transferFailure(mutation.error.value)
@@ -208,89 +210,103 @@ onBeforeUnmount(() => {
 onBeforeRouteLeave(() => !(submitting || waitingToConfirm.value || failure.value?.uncertain))
 </script>
 <template>
-  <section aria-labelledby="transfer-title" class="space-y-8 py-2 sm:py-3">
-    <header>
-      <p class="mb-2 text-xs font-semibold tracking-widest text-primary">MOVE MONEY</p>
-      <h1
-        id="transfer-title"
-        ref="heading"
-        tabindex="-1"
-        class="text-3xl font-semibold tracking-tight text-highlighted focus:outline-none"
+  <section aria-labelledby="transfer-title" class="mx-auto max-w-5xl space-y-5 py-1 sm:py-2">
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <div class="mb-1 flex items-center gap-2">
+          <p class="text-xs font-semibold tracking-[0.16em] text-primary">MOVE MONEY</p>
+          <span
+            v-if="recovered"
+            role="status"
+            class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+          >
+            Draft restored
+          </span>
+        </div>
+        <h1
+          id="transfer-title"
+          ref="heading"
+          tabindex="-1"
+          class="text-2xl font-semibold tracking-tight text-highlighted focus:outline-none sm:text-3xl"
+        >
+          {{ stage === 'COMPLETE' ? 'All done' : 'Make a transfer' }}
+        </h1>
+        <p class="mt-1 hidden text-sm text-muted sm:block">Fast, secure and easy to review.</p>
+      </div>
+      <ol
+        aria-label="Transfer progress"
+        class="grid w-full grid-cols-3 gap-1 rounded-2xl border border-default bg-default p-1.5 shadow-sm lg:max-w-md"
       >
-        {{ stage === 'COMPLETE' ? 'All done' : 'Make a transfer' }}
-      </h1>
-      <p class="mt-2 text-muted">
-        Between your accounts or to someone else, in a few simple steps.
-      </p>
+        <li
+          v-for="(item, index) in stages"
+          :key="item"
+          :aria-current="stage === item ? 'step' : undefined"
+          class="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2 text-sm transition-colors"
+          :class="
+            stage === item
+              ? 'bg-primary font-semibold text-white shadow-sm'
+              : index < stageIndex
+                ? 'font-medium text-success'
+                : 'text-muted'
+          "
+        >
+          <span
+            class="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+            :class="
+              stage === item ? 'bg-white/20' : index < stageIndex ? 'bg-success/10' : 'bg-elevated'
+            "
+          >
+            {{ index < stageIndex ? '✓' : index + 1 }}
+          </span>
+          <span class="truncate">{{ ['Details', 'Review', 'Done'][index] }}</span>
+        </li>
+      </ol>
     </header>
     <p v-if="storageError" role="alert" class="text-error">{{ storageError }}</p>
-    <p v-if="recovered" role="status" class="text-sm text-muted">
-      Your saved transfer has been restored. Check the details before continuing.
-    </p>
-    <ol aria-label="Transfer progress" class="flex flex-wrap gap-6 text-sm">
-      <li
-        v-for="(item, index) in ['DETAILS', 'REVIEW', 'COMPLETE']"
-        :key="item"
-        :aria-current="stage === item ? 'step' : undefined"
-        :class="stage === item ? 'font-semibold text-primary' : 'text-muted'"
+    <div
+      class="bank-transfer-shell min-w-0 overflow-hidden rounded-3xl border border-default bg-default p-4 sm:p-6"
+    >
+      <TransferReceipt
+        v-if="stage === 'COMPLETE' && receipt && draft"
+        :receipt="receipt"
+        :recipient="
+          receipt.destination.kind === 'OWN_ACCOUNT'
+            ? draft.recipient
+            : receipt.destination.recipientSnapshot
+        "
+        @another="another"
+      />
+      <TransferReview
+        v-else-if="stage === 'REVIEW' && draft"
+        :draft="draft"
+        :pending="mutation.isPending.value || waitingToConfirm"
+        :failure="failure"
+        @back="back"
+        @confirm="confirm"
+      />
+      <DataState
+        v-else
+        :loading="
+          !accounts.isError.value &&
+          !beneficiaries.isError.value &&
+          (!accounts.data.value || !beneficiaries.data.value)
+        "
+        :error="accounts.error.value || beneficiaries.error.value"
+        :empty="accounts.data.value?.length === 0"
+        label="transfer details"
+        empty-message="An active account is needed to make a transfer."
+        @retry="retry"
       >
-        {{ index + 1 }}. {{ ['Details', 'Review', 'Complete'][index] }}
-      </li>
-    </ol>
-    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div class="bank-surface min-w-0 rounded-2xl border border-default bg-default p-5 sm:p-8">
-        <TransferReceipt
-          v-if="stage === 'COMPLETE' && receipt && draft"
-          :receipt="receipt"
-          :recipient="
-            receipt.destination.kind === 'OWN_ACCOUNT'
-              ? draft.recipient
-              : receipt.destination.recipientSnapshot
-          "
-          @another="another"
+        <TransferDetailsForm
+          v-if="accounts.data.value && beneficiaries.data.value"
+          :key="detailsVersion"
+          :accounts="accounts.data.value"
+          :beneficiaries="beneficiaries.data.value"
+          :initial="detailsDraft ?? draft?.details"
+          @change="changed"
+          @review="review"
         />
-        <TransferReview
-          v-else-if="stage === 'REVIEW' && draft"
-          :draft="draft"
-          :pending="mutation.isPending.value || waitingToConfirm"
-          :failure="failure"
-          @back="back"
-          @confirm="confirm"
-        />
-        <DataState
-          v-else
-          :loading="
-            !accounts.isError.value &&
-            !beneficiaries.isError.value &&
-            (!accounts.data.value || !beneficiaries.data.value)
-          "
-          :error="accounts.error.value || beneficiaries.error.value"
-          :empty="accounts.data.value?.length === 0"
-          label="transfer details"
-          empty-message="An active account is needed to make a transfer."
-          @retry="retry"
-        >
-          <TransferDetailsForm
-            v-if="accounts.data.value && beneficiaries.data.value"
-            :key="detailsVersion"
-            :accounts="accounts.data.value"
-            :beneficiaries="beneficiaries.data.value"
-            :initial="detailsDraft ?? draft?.details"
-            @change="changed"
-            @review="review"
-          />
-        </DataState>
-      </div>
-      <aside class="rounded-2xl border border-default bg-elevated p-6">
-        <h2 class="font-semibold text-highlighted">A little peace of mind</h2>
-        <p class="mt-3 text-sm leading-6 text-muted">
-          Check the recipient and amount on the review screen. Your available balance is checked
-          again when you confirm.
-        </p>
-        <p class="mt-4 text-sm leading-6 text-muted">
-          All transfers use USD. Frozen accounts cannot send or receive money.
-        </p>
-      </aside>
+      </DataState>
     </div>
   </section>
 </template>

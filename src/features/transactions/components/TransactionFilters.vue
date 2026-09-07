@@ -43,6 +43,10 @@ function update(patch: Partial<TransactionFiltersValue>) {
   draft.value = { ...draft.value, ...patch }
 }
 const fieldScope = computed(() => ({ draft: draft.value, update, busy: props.busy }))
+const filtersValid = computed(() => {
+  const values = Object.fromEntries(Object.entries(draft.value).filter(([, value]) => value.trim()))
+  return transactionQuerySchema.safeParse(values).success
+})
 watch(
   () => props.filters,
   (filters) => {
@@ -96,6 +100,10 @@ const selectFilters: {
 ]
 function apply() {
   if (props.busy) return
+  if (!filtersValid.value) {
+    validateOnBlur()
+    return
+  }
   const values = Object.fromEntries(Object.entries(draft.value).filter(([, value]) => value.trim()))
   const parsed = transactionQuerySchema.safeParse(values)
   if (!parsed.success) {
@@ -107,6 +115,16 @@ function apply() {
   }
   error.value = ''
   emit('apply', { ...draft.value })
+}
+function validateOnBlur() {
+  if (filtersValid.value) {
+    error.value = ''
+    return
+  }
+  error.value =
+    draft.value.dateFrom && draft.value.dateTo && draft.value.dateFrom > draft.value.dateTo
+      ? 'Start date must be on or before end date.'
+      : 'Check your filters. Use valid dates and a search of at most 200 characters.'
 }
 function clear() {
   // Clear local edits even when the URL already contains no filters.
@@ -128,6 +146,7 @@ function clear() {
     aria-label="Transaction filters"
     class="bank-surface transaction-filters rounded-2xl border border-default bg-default p-3 sm:p-4"
     @submit.prevent="apply"
+    @focusout="validateOnBlur"
   >
     <div class="filter-grid">
       <div class="filter-search min-w-0">
@@ -224,7 +243,13 @@ function clear() {
       </div>
       <div class="filter-actions flex flex-wrap items-center gap-2">
         <slot name="actions" v-bind="fieldScope" :apply="apply" :clear="clear">
-          <UButton :loading="busy" type="submit" class="min-h-10" icon="i-lucide-list-filter">
+          <UButton
+            :loading="busy"
+            :disabled="busy || !filtersValid"
+            type="submit"
+            class="min-h-10"
+            icon="i-lucide-list-filter"
+          >
             Apply filters
           </UButton>
           <UButton type="button" color="neutral" variant="ghost" class="min-h-10" @click="clear">

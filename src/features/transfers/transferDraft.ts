@@ -8,6 +8,10 @@ export interface TransferDetails {
   sourceAccountId: string
   recipientType: 'OWN_ACCOUNT' | 'BENEFICIARY'
   destinationId: string
+  recipientNetwork: 'SAME_BANK' | 'OTHER_BANK'
+  recipientAccountId: string
+  recipientName: string
+  bankName: string
   amount: string
   reference: string
 }
@@ -22,7 +26,11 @@ export function transferDetailsSchema(accounts: Account[], beneficiaries: Benefi
     .object({
       sourceAccountId: z.string().min(1, 'Choose a source account.'),
       recipientType: z.enum(['OWN_ACCOUNT', 'BENEFICIARY']),
-      destinationId: z.string().min(1, 'Choose a recipient.'),
+      destinationId: z.string(),
+      recipientNetwork: z.enum(['SAME_BANK', 'OTHER_BANK']),
+      recipientAccountId: z.string(),
+      recipientName: z.string().max(80, 'Use 80 characters or fewer.'),
+      bankName: z.string().max(80, 'Use 80 characters or fewer.'),
       amount: z.string().min(1, 'Enter an amount.'),
       reference: z.string().max(140, 'Use 140 characters or fewer.'),
     })
@@ -42,9 +50,20 @@ export function transferDetailsSchema(accounts: Account[], beneficiaries: Benefi
         )
           issue('destinationId', 'Choose a different active account in the same currency.')
       } else {
+        const accountIdIsValid = /^\d{8,20}$/.test(details.recipientAccountId.trim())
+        if (!accountIdIsValid) issue('recipientAccountId', 'Enter an Account ID with 8–20 digits.')
+        if (details.recipientNetwork === 'OTHER_BANK') {
+          if (!details.bankName.trim()) issue('bankName', 'Choose a bank.')
+          if (!details.recipientName.trim())
+            issue('recipientName', 'Enter the account holder name.')
+        }
         const target = beneficiaries.find((item) => item.id === details.destinationId)
-        if (!target || target.currency !== source?.currency)
-          issue('destinationId', 'Choose an available recipient in the same currency.')
+        if (
+          accountIdIsValid &&
+          details.recipientNetwork === 'SAME_BANK' &&
+          (!target || !target.internalAccountId || target.currency !== source?.currency)
+        )
+          issue('recipientAccountId', 'Check the Account ID before continuing.')
       }
       if (details.amount) {
         try {

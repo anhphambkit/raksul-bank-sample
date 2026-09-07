@@ -12,6 +12,10 @@ const details = {
   sourceAccountId: 'account-checking',
   recipientType: 'OWN_ACCOUNT' as const,
   destinationId: 'account-savings',
+  recipientNetwork: 'SAME_BANK' as const,
+  recipientAccountId: '',
+  recipientName: '',
+  bankName: '',
   amount: '10.50',
   reference: 'Recover me',
 }
