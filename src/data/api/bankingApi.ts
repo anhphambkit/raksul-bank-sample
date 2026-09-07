@@ -74,6 +74,7 @@ export function createBankingApi(
       return request<PaginatedTransactions>(`transactions?${params}`, signal)
     },
     beneficiaries: (signal?: AbortSignal) => request<Beneficiary[]>('beneficiaries', signal),
+    createBeneficiary: (body) => request<Beneficiary>('beneficiaries', undefined, 'POST', body),
     executeTransfer: (body: TransferRequest) =>
       request<TransferReceipt>('transfers', undefined, 'POST', body),
     transfer: (id: string, signal?: AbortSignal) =>

@@ -1,3 +1,5 @@
+import { createBeneficiary } from '../../../use-cases/beneficiaries/createBeneficiary'
+import { beneficiaryRequestSchema } from '../../api/beneficiaryRequestSchema'
 import { DomainError } from '../../../domain/errors'
 import type { Transfer } from '../../../domain/transfers/transfer'
 import {
@@ -53,6 +55,16 @@ export function createBankingHandlers(repository: BankingRepository) {
     return result
   }
   return [
+    http.post('*/api/beneficiaries', async ({ request }) => {
+      const parsed = beneficiaryRequestSchema.safeParse(await request.json().catch(() => null))
+      if (!parsed.success)
+        return failure(
+          400,
+          'INVALID_RECIPIENT',
+          'Check the recipient name, bank and account number.',
+        )
+      return respond(() => createBeneficiary(repository, parsed.data))
+    }),
     http.post('*/api/transfers', async ({ request }) => {
       const parsed = transferRequestSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)

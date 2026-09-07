@@ -1,3 +1,4 @@
+import type { CreateBeneficiaryRequest } from './beneficiaries'
 import type { Account } from '../domain/accounts/account'
 import type { Beneficiary } from '../domain/beneficiaries/beneficiary'
 import type { Customer } from '../domain/customers/customer'
@@ -15,6 +16,7 @@ export interface BankingApi {
     signal?: AbortSignal,
   ): Promise<PaginatedTransactions>
   beneficiaries(signal?: AbortSignal): Promise<Beneficiary[]>
+  createBeneficiary(request: CreateBeneficiaryRequest): Promise<Beneficiary>
   executeTransfer(request: TransferRequest): Promise<TransferReceipt>
   transfer(id: string, signal?: AbortSignal): Promise<TransferReceipt>
   reset(signal?: AbortSignal): Promise<void>

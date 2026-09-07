@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import UModal from '@nuxt/ui/components/Modal.vue'
+import AddRecipientForm from './AddRecipientForm.vue'
 import UForm from '@nuxt/ui/components/Form.vue'
 import UFormField from '@nuxt/ui/components/FormField.vue'
 import USelect from '@nuxt/ui/components/Select.vue'
@@ -22,7 +24,12 @@ const props = defineProps<{
   beneficiaries: Beneficiary[]
   initial?: TransferDetails
 }>()
-const emit = defineEmits<{ review: [draft: TransferDraft] }>()
+const emit = defineEmits<{ review: [draft: TransferDraft]; change: [details: TransferDetails] }>()
+const addingRecipient = ref(false)
+function recipientSaved(id: string) {
+  state.destinationId = id
+  addingRecipient.value = false
+}
 const state = reactive<TransferDetails>(
   props.initial
     ? { ...props.initial }
@@ -34,6 +41,7 @@ const state = reactive<TransferDetails>(
         reference: '',
       },
 )
+watch(state, () => emit('change', { ...state }), { flush: 'sync' })
 const schema = computed(() => transferDetailsSchema(props.accounts, props.beneficiaries))
 const source = computed(() =>
   props.accounts.find((account) => account.id === state.sourceAccountId),
@@ -135,6 +143,9 @@ async function focusError(event: { errors: { id?: string }[] }) {
         No eligible recipients are available for this account.
       </p>
     </UFormField>
+    <UButton v-if="state.recipientType === 'BENEFICIARY'" @click="addingRecipient = true">
+      Add recipient
+    </UButton>
     <div class="grid gap-6 sm:grid-cols-2">
       <UFormField label="Amount" name="amount" required>
         <MoneyInput v-model="state.amount" />
@@ -163,4 +174,17 @@ async function focusError(event: { errors: { id?: string }[] }) {
       </UButton>
     </div>
   </UForm>
+  <UModal
+    v-model:open="addingRecipient"
+    title="New recipient"
+    description="Save recipient details before making a transfer."
+  >
+    <template #body>
+      <AddRecipientForm
+        v-if="addingRecipient"
+        @saved="recipientSaved"
+        @cancel="addingRecipient = false"
+      />
+    </template>
+  </UModal>
 </template>
