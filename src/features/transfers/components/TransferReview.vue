@@ -33,7 +33,7 @@ defineEmits<{ back: []; confirm: [] }>()
           <p class="font-medium text-highlighted">{{ draft.source.displayName }}</p>
           <MaskedAccountNumber :account-number="draft.source.accountNumber" class="mt-1" />
           <p class="mt-2 text-muted">
-            Available balance
+            Balance at review
             <MoneyDisplay :amount-minor="draft.source.balanceMinor" />
           </p>
         </dd>

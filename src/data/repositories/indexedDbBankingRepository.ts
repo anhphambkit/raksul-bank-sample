@@ -1,3 +1,4 @@
+import { publishBankingChange } from '../sync/bankingChanges'
 import {
   RepositoryError,
   type BankingRepository,
@@ -101,7 +102,10 @@ export function createIndexedDbBankingRepository(
           reject(storageError())
           return
         }
-        transaction.oncomplete = () => resolve(result)
+        transaction.oncomplete = () => {
+          if (mode !== 'load') publishBankingChange(mode === 'reset')
+          resolve(result)
+        }
         transaction.onabort = () => reject(failure ?? storageError())
         const abort = (error: unknown) => {
           failure = error

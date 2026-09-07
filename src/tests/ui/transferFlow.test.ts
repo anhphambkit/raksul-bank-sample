@@ -70,6 +70,20 @@ async function details(wrapper: VueWrapper, beneficiary?: string, amount = '10.5
 }
 
 describe('transfer details → review → confirmation → receipt', () => {
+  it('does not submit if the pending request cannot be saved for recovery', async () => {
+    const { wrapper } = await page()
+    await details(wrapper)
+    const before = await repository.load()
+    const update = vi.spyOn(repository, 'update')
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Recovery storage is full')
+    })
+    await button(wrapper, 'Confirm transfer').trigger('click')
+    expect(wrapper.text()).toContain('Recovery storage is full')
+    expect(update).not.toHaveBeenCalled()
+    expect(await repository.load()).toEqual(before)
+  })
+
   it.each([undefined, 'beneficiary-alex', 'beneficiary-rent'])(
     'completes %s through HTTP and committed IndexedDB, then refreshes balances and activity',
     async (beneficiary) => {
