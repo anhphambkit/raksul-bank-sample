@@ -6,7 +6,7 @@ const masked = computed(() => maskAccountNumber(props.accountNumber))
 defineSlots<{ default?(props: { masked: string }): VNodeChild }>()
 </script>
 <template>
-  <span class="font-mono tracking-wide"
-    ><slot :masked="masked">{{ masked }}</slot></span
-  >
+  <span class="font-mono tracking-wide">
+    <slot :masked="masked">{{ masked }}</slot>
+  </span>
 </template>

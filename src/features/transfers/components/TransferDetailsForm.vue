@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, nextTick, reactive, watch } from 'vue'
 import UForm from '@nuxt/ui/components/Form.vue'
 import UFormField from '@nuxt/ui/components/FormField.vue'
 import USelect from '@nuxt/ui/components/Select.vue'
@@ -74,13 +74,21 @@ watch(
 function review() {
   emit('review', prepareTransfer({ ...state }, props.accounts, props.beneficiaries))
 }
-function focusError(event: { errors: { id?: string }[] }) {
+async function focusError(event: { errors: { id?: string }[] }) {
+  await nextTick()
   const id = event.errors[0]?.id
   if (id) document.getElementById(id)?.focus()
 }
 </script>
 <template>
-  <UForm :schema="schema" :state="state" class="space-y-7" @submit="review" @error="focusError">
+  <UForm
+    :loading-auto="false"
+    :schema="schema"
+    :state="state"
+    class="space-y-7"
+    @submit="review"
+    @error="focusError"
+  >
     <UFormField label="From account" name="sourceAccountId" required>
       <USelect
         v-model="state.sourceAccountId"
@@ -128,16 +136,17 @@ function focusError(event: { errors: { id?: string }[] }) {
       </p>
     </UFormField>
     <div class="grid gap-6 sm:grid-cols-2">
-      <UFormField label="Amount" name="amount" required
-        ><MoneyInput v-model="state.amount"
-      /></UFormField>
-      <UFormField label="Reference" name="reference" hint="Optional"
-        ><UInput
+      <UFormField label="Amount" name="amount" required>
+        <MoneyInput v-model="state.amount" />
+      </UFormField>
+      <UFormField label="Reference" name="reference" hint="Optional">
+        <UInput
           v-model="state.reference"
           placeholder="What's this for?"
           :maxlength="140"
           class="w-full"
-      /></UFormField>
+        />
+      </UFormField>
     </div>
     <div
       class="flex flex-col gap-4 border-t border-default pt-6 sm:flex-row sm:items-center sm:justify-between"
@@ -149,8 +158,9 @@ function focusError(event: { errors: { id?: string }[] }) {
         class="justify-center"
         trailing-icon="i-lucide-arrow-right"
         :disabled="!accounts.some((account) => account.status === 'ACTIVE')"
-        >Review transfer</UButton
       >
+        Review transfer
+      </UButton>
     </div>
   </UForm>
 </template>

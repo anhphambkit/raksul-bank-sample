@@ -60,13 +60,17 @@ const styles = computed(() => theme({ appearance: appearance.value }))
 
 <template>
   <article :aria-label="account.displayName" :class="styles.root({ class: props.ui?.root })">
-    <div class="bank-card-art" aria-hidden="true"><span /><span /><span /></div>
+    <div class="bank-card-art" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </div>
     <div :class="styles.body({ class: props.ui?.body })">
       <div :class="styles.header({ class: props.ui?.header })">
         <slot name="header" v-bind="slotProps">
-          <span v-if="brand" class="text-sm font-semibold tracking-tight text-white/90">{{
-            brand
-          }}</span>
+          <span v-if="brand" class="text-sm font-semibold tracking-tight text-white/90">
+            {{ brand }}
+          </span>
           <div v-else class="flex items-center gap-2 text-white/75">
             <UIcon
               :name="account.type === 'CHECKING' ? 'i-lucide-wallet' : 'i-lucide-vault'"
@@ -119,8 +123,9 @@ const styles = computed(() => theme({ appearance: appearance.value }))
               variant="ghost"
               class="bank-card-transfer min-h-11 w-full justify-center rounded-xl"
               :trailing-icon="canTransfer ? 'i-lucide-arrow-up-right' : 'i-lucide-lock-keyhole'"
-              >Transfer</UButton
             >
+              Transfer
+            </UButton>
           </slot>
         </div>
       </slot>

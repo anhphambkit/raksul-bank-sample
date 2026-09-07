@@ -58,7 +58,8 @@ const scope = computed(() => ({
             name="i-lucide-circle-check"
             class="size-3.5 shrink-0 text-emerald-700"
             aria-hidden="true"
-          />In active accounts
+          />
+          In active accounts
         </p>
         <MoneyDisplay
           :amount-minor="active"
@@ -75,7 +76,8 @@ const scope = computed(() => ({
             name="i-lucide-lock-keyhole"
             class="size-3.5 shrink-0 text-amber-700"
             aria-hidden="true"
-          />In frozen accounts
+          />
+          In frozen accounts
         </p>
         <MoneyDisplay
           :amount-minor="frozen"

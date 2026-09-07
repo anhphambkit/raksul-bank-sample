@@ -39,8 +39,9 @@ const { data: accounts, isPending, isFetching, isError, error, refetch } = useAc
           :loading="isFetching"
           icon="i-lucide-refresh-cw"
           @click="refetch()"
-          >Refresh</UButton
         >
+          Refresh
+        </UButton>
       </div>
       <div class="grid gap-5 xl:grid-cols-3 md:grid-cols-2">
         <AccountCard v-for="account in accounts" :key="account.id" :account="account" />

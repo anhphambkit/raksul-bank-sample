@@ -108,8 +108,9 @@ watch(
           <span
             aria-hidden="true"
             class="flex size-9 shrink-0 items-center justify-center bank-brand-mark rounded-xl bg-primary text-2xl leading-none font-semibold text-white"
-            >r.</span
           >
+            r.
+          </span>
           <span class="text-lg font-semibold tracking-tight text-highlighted">raksul-bank</span>
         </NuxtLink>
       </template>
@@ -169,9 +170,9 @@ watch(
             <nav aria-label="Breadcrumb" class="flex min-w-0 items-center gap-3 text-sm">
               <span class="hidden text-muted sm:inline">Personal banking</span>
               <span aria-hidden="true" class="hidden text-dimmed sm:inline">/</span>
-              <span aria-current="page" class="truncate font-medium text-toned">{{
-                pageTitle
-              }}</span>
+              <span aria-current="page" class="truncate font-medium text-toned">
+                {{ pageTitle }}
+              </span>
             </nav>
           </template>
           <template #right>
@@ -179,8 +180,9 @@ watch(
               color="primary"
               variant="soft"
               class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700"
-              >Preview</UBadge
             >
+              Preview
+            </UBadge>
           </template>
         </UDashboardNavbar>
       </template>

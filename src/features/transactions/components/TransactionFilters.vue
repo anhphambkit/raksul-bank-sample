@@ -132,9 +132,12 @@ function clear() {
     <div class="filter-grid">
       <div class="filter-search min-w-0">
         <slot name="search" v-bind="fieldScope">
-          <label :for="`${idPrefix}-search`" class="mb-1 block text-xs font-medium text-highlighted"
-            >Search transactions</label
+          <label
+            :for="`${idPrefix}-search`"
+            class="mb-1 block text-xs font-medium text-highlighted"
           >
+            Search transactions
+          </label>
           <UInput
             :id="`${idPrefix}-search`"
             v-model="draft.query"
@@ -152,8 +155,9 @@ function clear() {
           <label
             :for="`${idPrefix}-account`"
             class="mb-1 block text-xs font-medium text-highlighted"
-            >Account</label
           >
+            Account
+          </label>
           <USelect
             :id="`${idPrefix}-account`"
             :model-value="draft.accountId || 'ALL'"
@@ -169,8 +173,9 @@ function clear() {
           <label
             :for="`${idPrefix}-${filter.key}`"
             class="mb-1 block text-xs font-medium text-highlighted"
-            >{{ filter.label }}</label
           >
+            {{ filter.label }}
+          </label>
           <USelect
             :id="`${idPrefix}-${filter.key}`"
             :model-value="draft[filter.key] || 'ALL'"
@@ -187,8 +192,9 @@ function clear() {
             <label
               :for="`${idPrefix}-date-from`"
               class="mb-1 block text-xs font-medium text-highlighted"
-              >From (UTC)</label
             >
+              From (UTC)
+            </label>
             <UInput
               :id="`${idPrefix}-date-from`"
               v-model="draft.dateFrom"
@@ -202,8 +208,9 @@ function clear() {
             <label
               :for="`${idPrefix}-date-to`"
               class="mb-1 block text-xs font-medium text-highlighted"
-              >To (UTC)</label
             >
+              To (UTC)
+            </label>
             <UInput
               :id="`${idPrefix}-date-to`"
               v-model="draft.dateTo"
@@ -217,12 +224,12 @@ function clear() {
       </div>
       <div class="filter-actions flex flex-wrap items-center gap-2">
         <slot name="actions" v-bind="fieldScope" :apply="apply" :clear="clear">
-          <UButton :loading="busy" type="submit" class="min-h-10" icon="i-lucide-list-filter"
-            >Apply filters</UButton
-          >
-          <UButton type="button" color="neutral" variant="ghost" class="min-h-10" @click="clear"
-            >Clear filters</UButton
-          >
+          <UButton :loading="busy" type="submit" class="min-h-10" icon="i-lucide-list-filter">
+            Apply filters
+          </UButton>
+          <UButton type="button" color="neutral" variant="ghost" class="min-h-10" @click="clear">
+            Clear filters
+          </UButton>
           <p class="filter-date-hint text-xs text-muted">Dates include the full day in UTC.</p>
         </slot>
       </div>

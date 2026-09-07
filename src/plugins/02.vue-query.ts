@@ -9,10 +9,6 @@ import {
 
 export default defineNuxtPlugin((nuxtApp) => {
   const state = useState<DehydratedState | null>('banking-query', () => null)
-  const stateTest = useState('banking-query-test', () => ({
-    a: 1,
-    b: 2,
-  }))
   // Never share server state between SSR requests/users.
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,10 +25,6 @@ export default defineNuxtPlugin((nuxtApp) => {
       queryClient.clear()
     })
   } else {
-    console.log(
-    'banking-query-test CLIENT VALUE:',
-    stateTest.value,
-  )
     if (state.value) hydrate(queryClient, state.value)
   }
 })

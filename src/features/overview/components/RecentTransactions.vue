@@ -65,15 +65,16 @@ onServerPrefetch(async () => {
       <h2 :id="headingId" class="text-xl font-semibold text-highlighted">
         <slot name="header" :title="title">{{ title }}</slot>
       </h2>
-      <slot name="actions"
-        ><UButton
+      <slot name="actions">
+        <UButton
           :to="viewAllTo"
           color="neutral"
           variant="link"
           trailing-icon="i-lucide-arrow-right"
-          >View transactions</UButton
-        ></slot
-      >
+        >
+          View transactions
+        </UButton>
+      </slot>
     </div>
     <DataState
       :loading="isPending"
@@ -85,21 +86,22 @@ onServerPrefetch(async () => {
       empty-message="Your account activity will appear here."
       @retry="refetch()"
     >
-      <template #loading="state"
-        ><slot name="loading" v-bind="state"
-          ><BankingSkeleton variant="transactions" :count="limit" /></slot
-      ></template>
+      <template #loading="state">
+        <slot name="loading" v-bind="state">
+          <BankingSkeleton variant="transactions" :count="limit" />
+        </slot>
+      </template>
       <template v-if="$slots.error" #error="state"><slot name="error" v-bind="state" /></template>
       <template v-if="$slots.empty" #empty="state"><slot name="empty" v-bind="state" /></template>
-      <template v-if="$slots.refreshing" #refreshing="state"
-        ><slot name="refreshing" v-bind="state"
-      /></template>
+      <template v-if="$slots.refreshing" #refreshing="state">
+        <slot name="refreshing" v-bind="state" />
+      </template>
       <template #default>
         <slot :transactions="data?.data ?? []" :accounts="accounts" :refreshing="isFetching">
           <TransactionTable :transactions="data?.data ?? []" :accounts="accounts" variant="recent">
-            <template v-for="name in forwardedSlots()" :key="name" #[name]="item"
-              ><slot :name="name" v-bind="item"
-            /></template>
+            <template v-for="name in forwardedSlots()" :key="name" #[name]="item">
+              <slot :name="name" v-bind="item" />
+            </template>
           </TransactionTable>
         </slot>
       </template>

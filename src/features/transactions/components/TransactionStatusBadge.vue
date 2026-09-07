@@ -39,9 +39,9 @@ defineSlots<{
     class="bank-status rounded-full font-semibold"
     :class="[presentation.class, size === 'md' ? 'px-2.5 py-1 text-xs' : undefined]"
   >
-    <template v-if="$slots.leading" #leading
-      ><slot name="leading" :status="status" :icon="presentation.icon"
-    /></template>
+    <template v-if="$slots.leading" #leading>
+      <slot name="leading" :status="status" :icon="presentation.icon" />
+    </template>
     <slot :status="status" :label="presentation.label">{{ presentation.label }}</slot>
   </UBadge>
 </template>

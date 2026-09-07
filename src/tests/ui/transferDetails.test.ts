@@ -81,6 +81,18 @@ describe('transfer details', () => {
     )
     expect(existing.get<HTMLInputElement>('input[inputmode="decimal"]').element.value).toBe('0.29')
   })
+  it('focuses and describes the invalid amount after review validation', async () => {
+    const wrapper = form({ ...details, amount: '999999' })
+    await wrapper.get('form').trigger('submit')
+    const input = wrapper.get('input[inputmode="decimal"]')
+    await vi.waitFor(() => expect(document.activeElement === input.element).toBe(true))
+    expect(input.attributes('aria-invalid')).toBe('true')
+    const errorId = input.attributes('aria-describedby')!
+    expect(document.getElementById(errorId)?.textContent).toContain(
+      'exceeds your available balance',
+    )
+    expect(wrapper.emitted('review')).toBeUndefined()
+  })
   it('prepares beneficiary identity from the loaded recipient, not entered account details', () => {
     const draft = prepareTransfer(
       { ...details, recipientType: 'BENEFICIARY', destinationId: 'beneficiary-rent' },

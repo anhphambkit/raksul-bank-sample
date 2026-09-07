@@ -125,37 +125,38 @@ const styles = computed(() => theme({ variant: props.variant }))
                 <p class="mt-1 text-xs text-muted">{{ row.original.id }}</p>
               </template>
               <p v-else class="mt-1 text-xs text-muted">
-                <slot name="account" v-bind="scope(row.original, 'table')">{{
-                  accountMap.get(row.original.accountId)?.displayName ?? 'Account'
-                }}</slot>
+                <slot name="account" v-bind="scope(row.original, 'table')">
+                  {{ accountMap.get(row.original.accountId)?.displayName ?? 'Account' }}
+                </slot>
               </p>
             </div>
           </div>
         </slot>
       </template>
       <template #occurredAt-cell="{ row }">
-        <slot name="date" v-bind="scope(row.original, 'table')"
-          ><time :datetime="row.original.occurredAt" class="text-muted">{{
-            dateFormat.format(new Date(row.original.occurredAt))
-          }}</time></slot
-        >
+        <slot name="date" v-bind="scope(row.original, 'table')">
+          <time :datetime="row.original.occurredAt" class="text-muted">
+            {{ dateFormat.format(new Date(row.original.occurredAt)) }}
+          </time>
+        </slot>
       </template>
       <template #accountId-cell="{ row }">
-        <slot name="account" v-bind="scope(row.original, 'table')"
-          ><span class="whitespace-normal">{{
-            accountMap.get(row.original.accountId)?.displayName ?? 'Account'
-          }}</span></slot
-        >
+        <slot name="account" v-bind="scope(row.original, 'table')">
+          <span class="whitespace-normal">
+            {{ accountMap.get(row.original.accountId)?.displayName ?? 'Account' }}
+          </span>
+        </slot>
       </template>
-      <template #type-cell="{ row }"
-        ><slot name="type" v-bind="scope(row.original, 'table')">{{
-          types[row.original.type]
-        }}</slot></template
-      >
-      <template #status-cell="{ row }"
-        ><slot name="status" v-bind="scope(row.original, 'table')"
-          ><TransactionStatusBadge :status="row.original.status" /></slot
-      ></template>
+      <template #type-cell="{ row }">
+        <slot name="type" v-bind="scope(row.original, 'table')">
+          {{ types[row.original.type] }}
+        </slot>
+      </template>
+      <template #status-cell="{ row }">
+        <slot name="status" v-bind="scope(row.original, 'table')">
+          <TransactionStatusBadge :status="row.original.status" />
+        </slot>
+      </template>
       <template #amountMinor-cell="{ row }">
         <slot name="amount" v-bind="scope(row.original, 'table')">
           <MoneyDisplay
@@ -201,28 +202,26 @@ const styles = computed(() => theme({ variant: props.variant }))
             </div>
           </div>
           <div class="text-sm text-muted">
-            <slot name="account" v-bind="scope(entry, 'mobile')">{{
-              accountMap.get(entry.accountId)?.displayName ?? 'Account'
-            }}</slot>
+            <slot name="account" v-bind="scope(entry, 'mobile')">
+              {{ accountMap.get(entry.accountId)?.displayName ?? 'Account' }}
+            </slot>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
             <span>
-              <slot name="date" v-bind="scope(entry, 'mobile')"
-                ><time :datetime="entry.occurredAt">{{
-                  dateFormat.format(new Date(entry.occurredAt))
-                }}</time>
-                · UTC</slot
-              >
+              <slot name="date" v-bind="scope(entry, 'mobile')">
+                <time :datetime="entry.occurredAt">
+                  {{ dateFormat.format(new Date(entry.occurredAt)) }}
+                </time>
+                · UTC
+              </slot>
               <template v-if="variant === 'full'">
                 ·
-                <slot name="type" v-bind="scope(entry, 'mobile')">{{
-                  types[entry.type]
-                }}</slot></template
-              >
+                <slot name="type" v-bind="scope(entry, 'mobile')">{{ types[entry.type] }}</slot>
+              </template>
             </span>
-            <slot name="status" v-bind="scope(entry, 'mobile')"
-              ><TransactionStatusBadge :status="entry.status"
-            /></slot>
+            <slot name="status" v-bind="scope(entry, 'mobile')">
+              <TransactionStatusBadge :status="entry.status" />
+            </slot>
           </div>
           <p v-if="variant === 'full'" class="text-xs break-all text-muted">{{ entry.id }}</p>
         </slot>

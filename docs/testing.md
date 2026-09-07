@@ -28,7 +28,7 @@ Individual commands:
 
 If Chromium is installed at Playwright's default location instead, omit `PLAYWRIGHT_BROWSERS_PATH` consistently for both install and test. Linux CI may need `playwright install --with-deps chromium --no-shell` to install system dependencies.
 
-Playwright starts production Nuxt processes and the HTTP fixture on dynamically allocated localhost ports, then closes them during teardown. Each test gets a new browser context, isolating cookies, Service Workers and IndexedDB. Currently the suite targets desktop Chromium with one worker and no automatic retries. Failure screenshots, traces and the HTML report are ignored by Git in `test-results/` and `playwright-report/`.
+Playwright starts production Nuxt processes and the HTTP fixture on dynamically allocated localhost ports, then closes them during teardown. Each test gets a new browser context, isolating cookies, Service Workers and IndexedDB. The suite uses Chromium with desktop, 768px tablet and 390px mobile viewports, one worker and no automatic retries. Failure screenshots, traces and the HTML report are ignored by Git in `test-results/` and `playwright-report/`.
 
 ## Test boundaries
 
@@ -48,6 +48,8 @@ Playwright starts production Nuxt processes and the HTTP fixture on dynamically 
 1. Initial demo HTML contains loading state, then MSW starts and accounts render without hydration mismatch; navigation and title work.
 2. Transaction filtering updates results and URL, survives reload, and restores on Back/Forward.
 3. Review does not submit; confirmation submits once, debits/credits exact cents, and creates two activity entries. Balances persist after reload. Confirmed reset restores the original accounts and survives another reload.
+
+`scripts/e2e/core-qa.spec.mjs` checks the four pages at 1440/768/390px: keyboard navigation and focus, horizontal overflow, visible account-number masking, frozen source exclusion, filtered-empty recovery, and readable transfer review. Invalid submission must focus the enabled Amount input and associate the error message. Review alone must not change balances. These success paths also reject console errors; screenshots are saved for layout inspection.
 
 `scripts/e2e/backend.spec.mjs` checks:
 

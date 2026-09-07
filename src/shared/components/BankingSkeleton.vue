@@ -105,10 +105,11 @@ defineSlots<{
       </div>
     </div>
     <div v-else class="space-y-4">
-      <template v-for="item in count" :key="item"
-        ><slot name="block" :index="item - 1"
-          ><USkeleton class="bank-skeleton h-24 w-full rounded-2xl" /></slot
-      ></template>
+      <template v-for="item in count" :key="item">
+        <slot name="block" :index="item - 1">
+          <USkeleton class="bank-skeleton h-24 w-full rounded-2xl" />
+        </slot>
+      </template>
     </div>
   </div>
 </template>

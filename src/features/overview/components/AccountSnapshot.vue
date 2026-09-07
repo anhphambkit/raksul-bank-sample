@@ -44,10 +44,10 @@ defineProps<{ account: Account }>()
         :amount-minor="account.balanceMinor"
         class="text-xl font-semibold tracking-tight text-white"
       />
-      <span class="text-xs text-white/75"
-        >{{ account.currency }} ·
-        {{ account.status === 'FROZEN' ? 'Transfers unavailable' : 'Current balance' }}</span
-      >
+      <span class="text-xs text-white/75">
+        {{ account.currency }} ·
+        {{ account.status === 'FROZEN' ? 'Transfers unavailable' : 'Current balance' }}
+      </span>
     </div>
   </article>
 </template>

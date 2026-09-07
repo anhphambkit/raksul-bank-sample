@@ -22,7 +22,8 @@ defineEmits<{ back: []; confirm: [] }>()
         <MoneyDisplay
           :amount-minor="draft.request.amountMinor"
           class="text-3xl font-semibold text-highlighted"
-        /><span class="text-sm text-muted">{{ draft.request.currency }}</span>
+        />
+        <span class="text-sm text-muted">{{ draft.request.currency }}</span>
       </div>
     </div>
     <dl class="divide-y divide-default text-sm">
@@ -32,7 +33,8 @@ defineEmits<{ back: []; confirm: [] }>()
           <p class="font-medium text-highlighted">{{ draft.source.displayName }}</p>
           <MaskedAccountNumber :account-number="draft.source.accountNumber" class="mt-1" />
           <p class="mt-2 text-muted">
-            Available balance <MoneyDisplay :amount-minor="draft.source.balanceMinor" />
+            Available balance
+            <MoneyDisplay :amount-minor="draft.source.balanceMinor" />
           </p>
         </dd>
       </div>
@@ -68,16 +70,18 @@ defineEmits<{ back: []; confirm: [] }>()
         size="lg"
         :disabled="pending || failure?.uncertain"
         @click="$emit('back')"
-        >Back</UButton
       >
+        Back
+      </UButton>
       <UButton
         size="lg"
         :loading="pending"
         :disabled="pending"
         icon="i-lucide-check"
         @click="$emit('confirm')"
-        >{{ failure?.uncertain ? 'Retry same transfer' : 'Confirm transfer' }}</UButton
       >
+        {{ failure?.uncertain ? 'Retry same transfer' : 'Confirm transfer' }}
+      </UButton>
     </div>
   </div>
 </template>

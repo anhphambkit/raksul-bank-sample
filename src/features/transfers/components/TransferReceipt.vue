@@ -20,8 +20,9 @@ const dateFormat = new Intl.DateTimeFormat('en-US', {
     <div class="text-center">
       <span
         class="mx-auto flex size-14 items-center justify-center rounded-full bg-green-100 text-green-700"
-        ><UIcon name="i-lucide-check" class="size-7"
-      /></span>
+      >
+        <UIcon name="i-lucide-check" class="size-7" />
+      </span>
       <h2 class="mt-4 text-2xl font-semibold text-highlighted" role="status">Transfer complete</h2>
       <p class="mt-2 text-sm text-muted">Your transfer has been completed successfully.</p>
       <MoneyDisplay
@@ -50,17 +51,18 @@ const dateFormat = new Intl.DateTimeFormat('en-US', {
       <div class="grid gap-2 py-4 sm:grid-cols-[120px_1fr]">
         <dt class="text-muted">Completed</dt>
         <dd>
-          <time :datetime="receipt.completedAt">{{
-            dateFormat.format(new Date(receipt.completedAt))
-          }}</time>
+          <time :datetime="receipt.completedAt">
+            {{ dateFormat.format(new Date(receipt.completedAt)) }}
+          </time>
         </dd>
       </div>
     </dl>
     <div class="flex flex-wrap gap-3 border-t border-default pt-6">
-      <UButton to="/transactions" size="lg">View transactions</UButton
-      ><UButton color="neutral" variant="outline" size="lg" @click="$emit('another')"
-        >Make another transfer</UButton
-      ><UButton to="/accounts" color="neutral" variant="ghost" size="lg">Back to accounts</UButton>
+      <UButton to="/transactions" size="lg">View transactions</UButton>
+      <UButton color="neutral" variant="outline" size="lg" @click="$emit('another')">
+        Make another transfer
+      </UButton>
+      <UButton to="/accounts" color="neutral" variant="ghost" size="lg">Back to accounts</UButton>
     </div>
   </div>
 </template>

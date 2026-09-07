@@ -75,11 +75,11 @@ defineSlots<{
       </slot>
     </div>
     <div class="flex flex-wrap items-center gap-3">
-      <slot name="summary" :pagination="pagination" :busy="busy"
-        ><p class="text-sm text-muted">
+      <slot name="summary" :pagination="pagination" :busy="busy">
+        <p class="text-sm text-muted">
           Page {{ pagination.page }} of {{ Math.max(1, pagination.totalPages) }}
-        </p></slot
-      >
+        </p>
+      </slot>
       <slot
         name="controls"
         :pagination="pagination"
@@ -94,16 +94,18 @@ defineSlots<{
           class="min-h-11"
           :disabled="!canPrevious"
           @click="setPage(pagination.page - 1)"
-          >Previous</UButton
         >
+          Previous
+        </UButton>
         <UButton
           color="neutral"
           variant="outline"
           class="min-h-11"
           :disabled="!canNext"
           @click="setPage(pagination.page + 1)"
-          >Next</UButton
         >
+          Next
+        </UButton>
       </slot>
     </div>
   </nav>

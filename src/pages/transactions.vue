@@ -42,9 +42,9 @@ function retry() {
         A filter, date range or page number is invalid. Update and apply your filters, or clear them
         to start again.
       </p>
-      <UButton class="mt-4" color="neutral" variant="outline" @click="clearFilters"
-        >Clear invalid filters</UButton
-      >
+      <UButton class="mt-4" color="neutral" variant="outline" @click="clearFilters">
+        Clear invalid filters
+      </UButton>
     </div>
     <div v-else class="mt-6" :aria-busy="isFetching || accounts.isFetching.value">
       <DataState
@@ -71,8 +71,9 @@ function retry() {
               :loading="isFetching"
               class="min-h-11"
               @click="refetch()"
-              >Refresh</UButton
             >
+              Refresh
+            </UButton>
           </div>
           <TransactionTable
             v-if="data.data.length"

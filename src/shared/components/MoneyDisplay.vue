@@ -13,10 +13,12 @@ defineSlots<{
 }>()
 </script>
 <template>
-  <span class="min-w-0 tabular-nums whitespace-normal"
-    ><slot :formatted="formatted" :amount-minor="amountMinor" :direction="direction"
-      ><template v-for="(group, index) in groups" :key="index"
-        ><span class="whitespace-nowrap">{{ group }}{{ index < groups.length - 1 ? ',' : '' }}</span
-        ><wbr v-if="index < groups.length - 1" /></template></slot
-  ></span>
+  <span class="min-w-0 tabular-nums whitespace-normal">
+    <slot :formatted="formatted" :amount-minor="amountMinor" :direction="direction">
+      <template v-for="(group, index) in groups" :key="index">
+        <span class="whitespace-nowrap">{{ group }}{{ index < groups.length - 1 ? ',' : '' }}</span>
+        <wbr v-if="index < groups.length - 1" />
+      </template>
+    </slot>
+  </span>
 </template>

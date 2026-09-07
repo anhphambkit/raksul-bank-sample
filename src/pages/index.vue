@@ -19,13 +19,10 @@ const { data: accounts, isPending, isFetching, isError, error, refetch } = useAc
         <p class="mt-1 text-sm text-muted">Your accounts and recent activity, at a glance.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <ResetDemoButton /><UButton
-          to="/transfer"
-          icon="i-lucide-arrow-up-right"
-          size="lg"
-          class="min-h-11"
-          >Transfer</UButton
-        >
+        <ResetDemoButton />
+        <UButton to="/transfer" icon="i-lucide-arrow-up-right" size="lg" class="min-h-11">
+          Transfer
+        </UButton>
       </div>
     </div>
     <DataState
@@ -41,9 +38,9 @@ const { data: accounts, isPending, isFetching, isError, error, refetch } = useAc
       <AccountSummary :accounts="accounts ?? []" compact />
       <div class="mt-3 mb-2 flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-highlighted">Your accounts</h2>
-        <UButton to="/accounts" color="neutral" variant="link" trailing-icon="i-lucide-arrow-right"
-          >Manage accounts</UButton
-        >
+        <UButton to="/accounts" color="neutral" variant="link" trailing-icon="i-lucide-arrow-right">
+          Manage accounts
+        </UButton>
       </div>
       <div class="grid gap-3 lg:grid-cols-3">
         <AccountSnapshot v-for="account in accounts" :key="account.id" :account="account" />

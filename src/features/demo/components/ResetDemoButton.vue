@@ -65,8 +65,9 @@ function cancel() {
         aria-haspopup="dialog"
         :aria-expanded="open"
         @click="requestOpen"
-        >Reset demo data</UButton
       >
+        Reset demo data
+      </UButton>
     </slot>
     <UModal
       v-model:open="open"
@@ -87,9 +88,9 @@ function cancel() {
       <template #footer>
         <div class="flex w-full justify-end gap-3">
           <slot name="actions" :pending="isPending" :confirm="confirm" :cancel="cancel">
-            <UButton color="neutral" variant="outline" :disabled="isPending" @click="cancel"
-              >Cancel</UButton
-            >
+            <UButton color="neutral" variant="outline" :disabled="isPending" @click="cancel">
+              Cancel
+            </UButton>
             <UButton :loading="isPending" @click="confirm">Reset demo</UButton>
           </slot>
         </div>
