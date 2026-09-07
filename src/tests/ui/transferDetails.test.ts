@@ -130,6 +130,19 @@ describe('transfer details', () => {
         .attributes(),
     ).not.toHaveProperty('disabled')
   })
+  it('keeps account numbers digit-only and preserves leading zeroes', async () => {
+    const wrapper = form()
+    wrapper.findComponent({ name: 'RadioGroup' }).vm.$emit('update:modelValue', 'BENEFICIARY')
+    await wrapper.vm.$nextTick()
+    const input = wrapper.get<HTMLInputElement>('input[inputmode="numeric"]')
+    await input.setValue('00123456')
+    for (const value of ['00123456a', '1e3', '-123', '12.34', '123 456']) {
+      await input.setValue(value)
+      expect(input.element.value).toBe('00123456')
+    }
+    await input.setValue('')
+    expect(input.element.value).toBe('')
+  })
   it('checks a same-bank Account ID and locks the verified account name', async () => {
     const wrapper = form()
     wrapper

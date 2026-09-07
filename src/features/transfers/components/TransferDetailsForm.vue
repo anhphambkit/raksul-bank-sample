@@ -11,6 +11,7 @@ import type { Account } from '@/domain/accounts/account'
 import type { Beneficiary } from '@/domain/beneficiaries/beneficiary'
 import { maskAccountNumber } from '@/domain/accounts/maskAccountNumber'
 import MoneyInput from '@/shared/components/MoneyInput.vue'
+import { strictNumericInput } from '@/shared/strictNumericInput'
 import MoneyDisplay from '@/shared/components/MoneyDisplay.vue'
 import {
   prepareTransfer,
@@ -55,6 +56,8 @@ const state = reactive<TransferDetails>(
         reference: '',
       },
 )
+
+const accountNumberInput = strictNumericInput(/^\d*$/, () => state.recipientAccountId)
 
 const initialRecipient = props.beneficiaries.find((item) => item.id === state.destinationId)
 if (state.recipientType === 'BENEFICIARY' && initialRecipient) {
@@ -273,6 +276,8 @@ async function focusError(event: { errors: { id?: string }[] }) {
               placeholder="Enter 8–20 digits"
               class="min-w-0 flex-1"
               size="lg"
+              @beforeinput="accountNumberInput.beforeinput"
+              @input.capture="accountNumberInput.input"
             />
             <UButton
               v-if="state.recipientNetwork === 'SAME_BANK'"

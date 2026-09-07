@@ -2,6 +2,7 @@
 import { computed, useId } from 'vue'
 import UInput from '@nuxt/ui/components/Input.vue'
 import { decimalToMinor, assertAmountMinor } from '@/domain/money/money'
+import { strictNumericInput } from '@/shared/strictNumericInput'
 const props = withDefaults(
   defineProps<{ id?: string; disabled?: boolean; showError?: boolean }>(),
   {
@@ -11,6 +12,7 @@ const props = withDefaults(
   },
 )
 const model = defineModel<string>({ default: '' })
+const numericInput = strictNumericInput(/^\d*(?:\.\d{0,2})?$/, () => model.value)
 const emit = defineEmits<{ amount: [value: number | undefined] }>()
 const fallbackId = useId()
 const inputId = computed(() => props.id ?? fallbackId)
@@ -47,6 +49,8 @@ function update(value: string | number) {
       :aria-invalid="props.showError && error ? true : undefined"
       :aria-describedby="props.showError && error ? `${inputId}-error` : undefined"
       class="w-full"
+      @beforeinput="numericInput.beforeinput"
+      @input.capture="numericInput.input"
       @update:model-value="update"
     >
       <template #leading><span class="text-muted">$</span></template>
