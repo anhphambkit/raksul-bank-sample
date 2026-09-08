@@ -2,7 +2,7 @@
 
 A customer-facing banking dashboard built with Nuxt 4, Vue 3 and strict TypeScript. The demo covers account overview, transaction discovery and consistent transfers without requiring a backend or API key.
 
-**Reviewer path:** [run locally](#getting-started) · [architecture](#architecture-overview) · [acceptance evidence](docs/verification.md)
+**Reviewer path:** [watch the demo](docs/assets/raksul-bank-demo.mp4) · [run locally](#getting-started) · [architecture](#architecture-overview) · [acceptance evidence](docs/verification.md)
 
 ## Highlights
 
