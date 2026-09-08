@@ -2,9 +2,7 @@
 
 A customer-facing banking dashboard built with Nuxt 4, Vue 3 and strict TypeScript. The demo covers account overview, transaction discovery and consistent transfers without requiring a backend or API key.
 
-**Reviewer path:** [run locally](#getting-started) · [architecture](#architecture-overview) · [acceptance evidence](docs/verification.md) · [10-minute walkthrough](docs/interview-walkthrough.md)
-
-**Detailed code guide / Hướng dẫn diễn giải code (Việt–Anh):** [Domain, use cases, data, plugins, utilities and Storybook](docs/code-guide.vi-en.md).
+**Reviewer path:** [run locally](#getting-started) · [architecture](#architecture-overview) · [acceptance evidence](docs/verification.md)
 
 ## Highlights
 
