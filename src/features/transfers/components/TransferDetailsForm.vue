@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { useBankingContext } from '@/data/api/bankingContext'
-import { DEMO_NEW_SAME_BANK_NUMBER } from '@/shared/config/demoRecipients'
+import {
+  DEMO_NEW_OTHER_BANK_RECIPIENT,
+  DEMO_NEW_SAME_BANK_NUMBER,
+} from '@/shared/config/demoRecipients'
 import type { CreateBeneficiaryRequest } from '@/contracts/beneficiaries'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import UForm from '@nuxt/ui/components/Form.vue'
@@ -125,15 +128,9 @@ function fillDemoRecipient() {
     state.recipientAccountId = DEMO_NEW_SAME_BANK_NUMBER
     return
   }
-  const sample = props.beneficiaries.find(
-    (item) => Boolean(item.internalAccountId) === (state.recipientNetwork === 'SAME_BANK'),
-  )
-  if (!sample) return
-  state.recipientAccountId = sample.accountNumber
-  if (state.recipientNetwork === 'OTHER_BANK') {
-    state.recipientName = sample.displayName
-    state.bankName = sample.bankName
-  }
+  state.recipientAccountId = DEMO_NEW_OTHER_BANK_RECIPIENT.accountNumber
+  state.recipientName = DEMO_NEW_OTHER_BANK_RECIPIENT.displayName
+  state.bankName = DEMO_NEW_OTHER_BANK_RECIPIENT.bankName
 }
 
 // Restored drafts always take precedence over demo defaults.

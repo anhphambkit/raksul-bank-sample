@@ -100,11 +100,13 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: 'Check account' }).click()
     await expect(page.getByText('Verified Raksul-bank account')).toBeVisible()
     await page.getByRole('radio', { name: 'Other bank' }).click()
-    await expect(page.getByRole('textbox', { name: /^Account number/ })).toHaveValue('300000002106')
+    await expect(page.getByRole('textbox', { name: /^Account number/ })).toHaveValue('987654327451')
     await expect(page.getByRole('textbox', { name: /^Account holder name/ })).toHaveValue(
-      'Maple Apartments',
+      'Avery Stone',
     )
-    await expect(page.getByRole('combobox', { name: /^Bank/ })).toContainText('Harbor Bank')
+    await expect(page.getByRole('combobox', { name: /^Bank/ })).toContainText('Techcombank')
+    await expect(page.getByText('This recipient is already saved.')).not.toBeVisible()
+    await expect(page.getByRole('checkbox', { name: 'Save recipient for next time' })).toBeVisible()
     await page.getByRole('button', { name: 'Saved recipient', exact: true }).click()
     const search = page.getByPlaceholder('Search name, bank or last 4 digits')
     await search.fill('no-such-contact')
