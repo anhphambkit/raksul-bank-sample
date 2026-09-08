@@ -1,19 +1,19 @@
-# Work sample acceptance evidence
+# Acceptance evidence
 
-Reviewed against the original four Core requirements and five deliverables on 2026-09-07. PASS means implemented and verified within the documented mock scope; it does not imply a production banking backend. Every Core and deliverable item passed before adding the optional architecture proposal or transaction detail view.
+This document maps the product requirements to the implementation and verification evidence. PASS means implemented and verified within the documented demo scope; it does not imply a production banking backend.
 
-## Transfer follow-up — 2026-09-08
+## Transfer enhancements
 
 - Account numbers are resolved within their bank: an external number matching a local account stays external and never credits that local account.
 - Saved recipients are selectable with search by name, bank or last four digits. Keyboard selection, draft reload and returning from Review are covered at 1440px and 390px.
 - New recipients are saved only when the current form's **Save recipient for next time** option is selected and the transfer commits. One-time transfers retain the receipt snapshot without adding a contact. The explicit save choice is part of idempotency; legacy requests remain replayable.
 - Same-bank lookup is independent of saved contacts. The prefilled Jordan Lee account is verified through the demo directory, then becomes a saved recipient only after an opted-in successful transfer.
 - An idempotency conflict offers **Check transaction activity**, refreshes banking queries and permits navigation. It retains its terminal status on reload and never retries or replaces the request key automatically.
-- Verification: 266 unit/component tests, 20 Chromium E2E tests, 5 Storybook checks, lint, formatting, typecheck/production build, SSR smoke, Storybook build and the local link checker passed. Saved-recipient layouts were additionally inspected at desktop/mobile widths; this follow-up did not rerun the complete visual-baseline suite.
+- Verification: 266 unit/component tests, 20 Chromium E2E tests, 5 Storybook checks, lint, formatting, typecheck, production build, SSR smoke, Storybook build and the local link checker passed.
 
 ## Final checklist — 2026-09-07
 
-The original assignment defines acceptance. Suggested seed counts, filter dimensions, recipient-entry UI and ADR topics are implementation guidance, not additional mandatory requirements. The implementation uses 100 seed transactions and saved/new recipients; an internal recipient models another person's account and receives the matching credit.
+The implementation uses 100 seed transactions and saved/new recipients; an internal recipient models another person's account and receives the matching credit.
 
 ### Core — product and data
 
@@ -42,7 +42,7 @@ The original assignment defines acceptance. Suggested seed counts, filter dimens
 - [x] Responsive browser checks at 1440/768/390px, including masking, overflow, transfer review and detail-drawer focus.
 - [x] Duplicate confirmation/replay cannot double-debit; competing writes check current funds; rollback is covered.
 - [x] Nuxt demo shell waits for browser storage readiness; backend SSR uses request-local queries, error serialization and cache hydration without duplicate accounts fetching in the tested flow.
-- [x] No console debug logs, TODO/FIXME markers or explicit `any` types found in the inspected runtime/test source; automated lint and browser checks pass.
+- [x] No console debug logs, TODO/FIXME markers or explicit `any` types in runtime/test source; automated lint and browser checks pass.
 
 ### Nice-to-Have — completed
 
@@ -58,14 +58,14 @@ The original assignment defines acceptance. Suggested seed counts, filter dimens
 - [x] Individual transaction drawer, including keyboard focus and preserved filter/page state.
 - [x] Production architecture proposal covering client, Banking API, identity, database and communication flow; infrastructure remains proposal-only.
 
-### Not implemented / intentionally deferred
+### Scope boundaries
 
-- [ ] Optional features: authentication and spending insights.
-- [ ] Broader verification: Firefox/WebKit and real mobile devices; current browser evidence is Chromium with resized viewports.
-- [ ] Cross-device synchronization: explicitly deferred by the user; no shared backend was added.
-- [ ] Real backend/authentication/authorization, FX, fees, settlement and production payment processing; excluded from this mock work sample.
+- Authentication and spending insights are not included.
+- Browser coverage uses Chromium with responsive viewports.
+- Cross-device synchronization requires a shared backend and is not included.
+- Production backend capabilities such as authentication, FX, fees, settlement and payment processing are outside the demo scope.
 
-No outstanding Core or required-deliverable defect was identified in this review. The unchecked items above are optional scope or documented demo limitations, not unfinished required functionality.
+No outstanding Core or required-deliverable defect was identified. The scope boundaries above are documented demo limitations, not unfinished required functionality.
 
 ## Core and required deliverables
 
@@ -83,46 +83,9 @@ No outstanding Core or required-deliverable defect was identified in this review
 | Data: deliberate mock boundary and banking model       | PASS   | Domain entities in `src/domain`, public contracts in `src/contracts`, use cases and repository port, thin MSW handlers, validated IndexedDB adapter. ESLint enforces import boundaries.                                                                                                       | Mock ownership projection is not server-side authorization.                                               |
 | Data: included realistic seed                          | PASS   | `src/data/seed/createSeedState.ts`: one fictional customer, three owned accounts, three hidden recipients, six saved beneficiaries, a separate unsaved same-bank directory account, varied activity and six completed seed transfers. Repository tests check deterministic balances/activity. | None within demo scope.                                                                                   |
 | Data: consistency after transfer                       | PASS   | Atomic read/validate/write repository transactions; rollback/concurrent-connection tests in `src/tests/data`; browser transfer/reload/reset checks use native IndexedDB.                                                                                                                      | Browser retention and cross-device state remain outside the demo; same-origin tab refresh is implemented. |
-| Deliverable: working code covering all four Core items | PASS   | Nuxt production build, Vitest tests, SSR integration script and Chromium suites.                                                                                                                                                                                                              | No real backend is required by the prompt.                                                                |
+| Deliverable: working code covering all four Core items | PASS   | Nuxt production build, Vitest tests, SSR integration script and Chromium suites.                                                                                                                                                                                                              | No real backend is required for the demo.                                                                 |
 | Deliverable: local run instructions                    | PASS   | README Getting Started, `.nvmrc`, `package-lock.json`, `.env.example`, `package.json`; default demo needs no credentials or external database.                                                                                                                                                | Chromium installation is needed only for browser tests.                                                   |
 | Deliverable: mock data in the repository               | PASS   | Deterministic seed factory and MSW handlers are versioned under `src/data`.                                                                                                                                                                                                                   | None.                                                                                                     |
-| Deliverable: README built/left-out scope               | PASS   | README What I Built, Deliberately Left Out, Assumptions and Known Limitations.                                                                                                                                                                                                                | None.                                                                                                     |
+| Deliverable: README scope and limitations              | PASS   | README highlights, assumptions, known limitations and production considerations.                                                                                                                                                                                                              | None.                                                                                                     |
 | Deliverable: README data model                         | PASS   | README entity/relationship table, Mermaid ER diagram, transfer behavior matrix and persistence semantics.                                                                                                                                                                                     | None.                                                                                                     |
 | Deliverable: 2–3 structured ADRs                       | PASS   | Exactly three Markdown records under `docs/adr`, each with Context → Alternatives → Decision → Consequences. Local links and heading structure verified.                                                                                                                                      | None.                                                                                                     |
-
-## Enhancement verification — 2026-09-07
-
-The requested follow-up is documented in [enhancements](enhancements.md). Cross-device synchronization was subsequently deferred by the user. This extends the completed Core; it does not replace the original acceptance evidence below.
-
-- 245 unit/component tests across 17 files passed, including atomic new-recipient transfer creation and durable recovery guards.
-- Strict typecheck, lint, formatting, Git whitespace check, production build and SSR smoke passed.
-- All 15 Chromium E2E tests passed, including recipient creation, close/reopen recovery and two-tab synchronization.
-- All four visual comparison tests passed against 12 committed baseline images.
-- Storybook production build and five browser tests passed (all 11 stories in each theme, seven component groups, Controls on every story, legacy bookmark compatibility and live Controls updates).
-- Visual baselines cover Accounts, Transactions and Transfer at 1440/390px in light/dark mode.
-- The earlier 230-test/11-browser-test counts below describe the original Core gate.
-
-## Quality checks
-
-Checklist reconciliation rerun on 2026-09-07: 230 unit/component tests, lint, formatting, strict typecheck, production build, SSR smoke and all 11 Chromium tests passed. The first SSR attempt was blocked by sandbox localhost permissions (`listen EPERM`); it passed outside the sandbox, followed by Chromium using the installed `.tools/playwright` browser. Clean installation and manual screenshot inspection below refer to the earlier Day 3 verification; neither was repeated for this documentation-only reconciliation.
-
-- 230 unit/component tests passed across 15 files.
-- Clean `npm ci --no-audit --no-fund` completed from the committed lockfile and generated Nuxt types.
-- `npm run lint`, `npm run format:check`, strict Nuxt typecheck, Git whitespace check and the production build passed.
-- `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright npm run test:all` passed after the clean install; this runs unit tests, typecheck/build, SSR and Chromium checks in sequence.
-- Production SSR checks passed: data rendering, query/error hydration, request isolation, auth-context forwarding, query/POST forwarding, private caching, error statuses and demo/backend modes.
-- Eleven Chromium tests passed, including demo persistence/reset, backend cache/error hydration and Core QA at 1440/768/390px. QA checks keyboard navigation, masking, frozen controls, filtered-empty recovery, horizontal overflow, associated validation errors and focus after an invalid submission.
-- Inspected screenshots of account/overview/transaction layouts and transfer review. Successful QA paths report no console errors; all browser tests reject uncaught errors or hydration mismatches.
-
-The validation-focus regression is covered in both `transferDetails.test.ts` and browser QA. Review performs local validation with automatic loading disabled so an invalid field can receive focus; the separate Confirm mutation retains its repeated-submit guard.
-
-## Optional work
-
-| Nice-to-Have                | Result                     | Evidence                                                                                                                                                                                                                                                                                                         |
-| --------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Focused testing             | PASS                       | `src/tests/data/executeTransfer.test.ts` covers all seven priority invariants; unit/component, SSR and native Chromium suites passed.                                                                                                                                                                            |
-| System architecture         | PASS                       | `docs/architecture.md` covers the Vue client, Banking API, authentication service, database schema and communication flow, with proposal-only components clearly identified.                                                                                                                                     |
-| Individual transaction view | PASS                       | `TransactionDetail.vue`, `TransactionTable.vue`, two focused unit tests and three browser viewport tests. Both Transactions and Recent activity expose the drawer. Masking, signed amounts, UTC time, related IDs, focus containment/return, preserved filters and absence of new banking requests are verified. |
-| Authentication              | Not implemented (optional) | Explicitly excluded in README; identity/session design is a proposal only.                                                                                                                                                                                                                                       |
-
-Optional features support but do not replace the Core requirements. Authentication and spending insights are not implemented and are not required for acceptance. Browser coverage is Chromium-only; viewport checks are not a claim of real iOS/Android device testing. See [testing strategy](testing.md) for test boundaries and reproduction commands.

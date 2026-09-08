@@ -1,6 +1,6 @@
 # Nuxt migration and backend handoff
 
-Revision: 2026-09-06, requested by the user. This document supersedes the previous standalone Vue/Vite setup. Earlier step reports retain their original verification evidence; their historical commands and framework constraints are not current instructions.
+Revision: 2026-09-06. This document supersedes the previous standalone Vue/Vite setup.
 
 ## Current architecture
 
@@ -74,7 +74,6 @@ Deploy `.output/` to a Node/Nitro-compatible host and run `npm start`, with `NUX
 - Production SSR smoke: rendered account and recent transaction data; two concurrent cookie identities isolated; authorization/cookie forwarding; transaction query forwarding; invalid URL avoids transaction fetch; server error rendering/payload serialization; private cache headers; real HTTP 404; demo-only reset blocking; browser-only demo SSR; worker asset delivery; missing-backend error.
 - Browser: Accounts populated through native MSW/IndexedDB, route navigation and transaction search worked, reload preserved `query=salary`, backend Accounts hydrated successfully, and no warning/error logs appeared in the inspected demo/backend pages.
 - Isolated UI tests use real Nuxt UI primitives with a small routing/metadata adapter; they are not represented as full Nuxt runtime tests. The separate smoke and browser checks cover the actual Nuxt build.
-- Historical tablet/mobile and transfer verification claims belong to the dated step reports; this migration does not implement or claim end-to-end transfer coverage.
 
 ## Shared contracts revision — 2026-09-06
 
@@ -93,8 +92,6 @@ Verification for this refactor: typecheck, lint, 153 unit/component tests, produ
 ## Next work
 
 The transfer use case, HTTP endpoints and details/review/receipt UI are complete. Transfer request and receipt types live in `src/contracts/transfers.ts`. The SSR smoke suite also checks the transfer form, recipient prefetch, authenticated JSON POST forwarding, exact cents, rejection status and lack of automatic mutation retries. For new queries, use the injected banking context, honor readiness, add SSR prefetch, and avoid module-scoped user data. Real backend/auth integration remains a separate implementation task.
-
-README and this migration document are versioned. The master handoff, earlier execution guides and recovered conversation notes remain ignored under the existing local documentation policy, and have also been updated locally.
 
 References: [Nuxt plugins](https://nuxt.com/docs/4.x/directory-structure/app/plugins), [Nuxt server directory](https://nuxt.com/docs/4.x/directory-structure/server), [TanStack Query SSR](https://tanstack.com/query/latest/docs/framework/vue/guides/ssr).
 

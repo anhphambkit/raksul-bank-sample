@@ -1,6 +1,6 @@
 # Banking demo enhancements
 
-The optional follow-up adds recipients, transfer recovery, same-browser tab synchronization, dark mode, Storybook and visual regression. Cross-device synchronization was explicitly deferred: IndexedDB remains local and there is no shared backend.
+This enhancement adds recipients, transfer recovery, same-browser tab synchronization, dark mode, Storybook and visual regression. Cross-device synchronization requires a shared backend and is outside the demo scope.
 
 ## Add a recipient
 
@@ -22,13 +22,15 @@ After an IndexedDB update/reset commits, the adapter publishes a random change t
 
 Reset removes demo recovery records and signals mounted transfer screens to clear their draft/receipt. A reset-generation check blocks a stale page from resubmitting an old request before its reset event is handled. Notifications are best effort; notification failure does not change a successfully committed transfer into a failed payment. The IndexedDB transaction remains the consistency boundary.
 
-This does not synchronize different browser profiles, origins, browsers or physical devices. Cross-device support needs a shared backend and was deferred by request.
+This does not synchronize different browser profiles, origins, browsers or physical devices. Cross-device support requires a shared backend.
 
 ## Theme and component catalog
 
 The header theme button switches light/dark mode with a persisted Nuxt color-mode preference. Light is the initial default. The toggle renders after hydration; a fixed-size fallback reserves its space. Semantic surface/text tokens and dedicated dark variants cover tables, forms, navigation, balance summary, skeletons and indicators. Account-card contrast remains explicit.
 
 Storybook uses Vue/Vite and the same Nuxt UI plugin, colors and CSS as the app. Its theme toolbar changes the canvas between light and dark. Seven component groups declare their actual component, typed args and explicit Controls. Eleven stories cover MoneyDisplay, valid/invalid MoneyInput, active/frozen AccountCard, TransactionTable, TransferDetailsForm, TransferReview (normal/pending/uncertain) and TransferReceipt. It is development tooling, not part of the Nitro deployment.
+
+Storybook is included as a local component catalog and visual QA tool. Publishing a hosted catalog is intentionally outside this repository's scope.
 
 ```sh
 npm run storybook
@@ -50,7 +52,3 @@ PLAYWRIGHT_BROWSERS_PATH=.tools/playwright npm run test:visual:update
 The separate visual suite compares Accounts, Transactions and Transfer at 1440px and 390px in both themes: 12 images across four tests. Seed data, locale, timezone, reduced motion and screenshot animation handling are deterministic. The baseline allows at most 0.1% changed pixels. Functional E2E assertions remain separate from screenshots.
 
 Baselines live in `scripts/visual/baselines/<platform>/`. The checked-in images target macOS Chromium. Browser version/OS/fonts affect rasterization; use the pinned Playwright browser on the same platform, or deliberately generate and review a separate platform baseline. Never blindly accept updates to make a failing visual test pass. Storybook must be rebuilt before its smoke suite, and the app must be rebuilt before E2E/visual suites.
-
-### Storybook onboarding checklist
-
-The Get started percentage tracks Storybook onboarding actions, not banking-app completion. Previously all stories shared one title, so the index counted one component; stories now use seven component titles with typed props/Controls. Changing Controls is verified both automatically and in the local browser. Publishing is a separate hosting action and remains pending a chosen host; the static build is ready. Docs/Vitest addon suggestions are optional integrations, distinct from the existing Vitest and Playwright suites. Do not mark the onboarding checklist complete artificially.
