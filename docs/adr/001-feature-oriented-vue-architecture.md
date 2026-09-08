@@ -1,22 +1,96 @@
 # 001 — Feature-oriented Vue architecture and state management
 
+- **Status:** Accepted
+- **Last clarified:** 2026-09-08
+- **Scope:** Frontend structure and state ownership in demo and backend modes
+
 ## Context
 
-Accounts, transaction search and transfers share banking rules but have different interaction state. Nuxt 4 must render a safe shell for browser-local demo data and customer-specific HTML when a backend is configured. These modes should use the same feature components.
+Accounts, transaction search and transfers share banking rules, but each feature has its own interactions. Related UI code should be easy to find, and business rules should be testable without rendering Vue components.
+
+The Nuxt 4 application supports two data modes. In demo mode, banking data lives in the browser, so the server renders a loading shell. In backend mode, the server can fetch customer data and render it into the page. Both modes use the same feature components and API contracts.
+
+## Decision drivers
+
+- Keep banking rules independent of Vue and browser storage.
+- Keep related UI code together without duplicating shared business rules.
+- Give each kind of state one clear owner.
+- Isolate customer data between server-rendered requests.
+- Keep abstractions appropriate for a work sample.
 
 ## Alternatives
 
-- Technical folders only (`components`, `services`, `utils`) are simple initially, but scatter a transfer change across unrelated files.
-- Feature-only folders keep UI changes together but duplicate money rules and couple persistence to pages.
-- Full Clean Architecture with a service/interface for every operation adds indirection without a second production adapter to justify it.
-- Putting API data in Pinia would require custom loading, deduplication, invalidation and SSR hydration alongside Vue Query. It would create competing sources of truth.
+| Option                                                               | Benefit                                   | Reason not selected                                                                              |
+| -------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Technical folders only, such as `components`, `services` and `utils` | Simple initial structure                  | A feature change becomes scattered across broad folders.                                         |
+| Put everything inside feature folders                                | Related UI code stays together            | Shared banking rules can be duplicated, and pages can become coupled to persistence.             |
+| Full Clean Architecture with a service/interface for every operation | Makes implementation replacement explicit | Adds indirection without a second production adapter to justify it.                              |
+| Store API data in Pinia alongside Vue Query                          | Makes data available globally             | Duplicates ownership and requires coordinating loading, caching, invalidation and SSR hydration. |
 
 ## Decision
 
-Use feature-oriented Vue components/composables plus shared `domain`, `use-cases`, `data`, `contracts` and `shared` boundaries. Nuxt pages/layouts/plugins compose them; Nitro owns backend forwarding. Domain code is framework-independent, use cases depend on a repository port, and contracts import domain/contract types only. ESLint checks these boundaries.
+### 1. Organize UI by feature and share the business boundaries
 
-TanStack Vue Query owns remote account/activity/beneficiary state. Create its client and API context inside each Nuxt application/request, prefetch backend queries during SSR and hydrate the result. Vue Router owns applied transaction filters and pagination; local refs/reactive objects own edits, drawer/menu state and transfer drafts. UForm/Zod validates forms. Nuxt UI and Tailwind supply presentation primitives. No global UI requirement currently needs Pinia.
+| Boundary                        | Responsibility                                                                   |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| `features`                      | Components and composables for accounts, transactions and transfers              |
+| `domain`                        | Framework-independent entities, money arithmetic and transfer validation         |
+| `use-cases`                     | Banking operations and queries, accessing persistence through a repository port  |
+| `data`                          | HTTP client, MSW handlers, seed data and the IndexedDB repository implementation |
+| `contracts`                     | Public API types, importing only domain and contract types                       |
+| `shared`                        | Reusable presentation components and utilities                                   |
+| Nuxt pages, layouts and plugins | Compose features and configure the application                                   |
+| Nitro server routes             | Forward backend-mode requests to the configured upstream                         |
+
+UI code calls the API boundary. It does not import use cases, repositories or seed data directly. Domain code does not depend on outer layers, and use cases do not depend on Vue or concrete data adapters. ESLint enforces these dependency rules.
+
+### 2. Assign each kind of state a clear owner
+
+| State                                                    | Owner                           | Reason                                                              |
+| -------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| Accounts, activity and beneficiaries returned by the API | TanStack Vue Query              | Fetching, cache reuse, loading/error states and invalidation        |
+| Applied transaction filters and pagination               | Vue Router query parameters     | Restore searches through reloads, links and Back/Forward navigation |
+| Unapplied form edits, drawers, menus and transfer drafts | Local Vue refs/reactive objects | Keep interaction state close to its component or page               |
+| Transfer draft and retry context across reloads          | Browser-local recovery records  | Preserve the exact request for explicit recovery; see ADR 003       |
+
+No current global UI requirement needs Pinia. UForm and Zod validate forms; Nuxt UI and Tailwind provide presentation primitives.
+
+### 3. Create API context and query cache per Nuxt application/request
+
+In backend mode, queries are prefetched during server-side rendering (SSR). Results are serialized into the Nuxt payload and restored into the browser cache during hydration. A payload codec preserves structured `ApiError` values.
+
+In demo mode, queries wait until hydration and MSW startup complete. The server cannot read browser-local banking data, so it renders the same loading shell that the client initially displays. Worker startup failure exposes an explicit API error rather than leaving queries waiting indefinitely.
+
+### 4. Refresh cached banking data after mutations
+
+Successful transfers and demo resets invalidate related banking queries. Transfer success also cancels stale requests before invalidation. Changes committed in another demo tab trigger cache refresh through the notification mechanism in ADR 002.
+
+## Why
+
+This structure keeps a feature's UI easy to find while giving shared banking rules a single home. The repository port lets transfer execution be tested independently of Vue. The HTTP contract lets demo and backend modes share feature UI, and explicit state ownership avoids maintaining competing copies of API data.
 
 ## Consequences
 
-Transfer rules can be tested without Vue; browser and SSR paths share typed contracts and feature UI. The boundaries add a few explicit imports but avoid generic service wrappers. SSR requires a payload codec for `ApiError`, readiness-aware queries and a request-local cache. Demo data cannot be rendered during SSR. Transfer drafts/retry context are also persisted locally for explicit recovery, and every successful mutation must invalidate related queries. Authentication would also require clearing caches on identity changes; it is not implemented.
+### Benefits
+
+- Business rules and use cases can be tested without mounting components.
+- Both data modes share typed contracts and feature components.
+- Request-local query clients isolate SSR caches between customers.
+- Dependency violations are checked automatically by lint.
+
+### Trade-offs and limits
+
+- Developers must understand several boundaries and use explicit imports between them.
+- SSR needs query readiness checks, cache hydration and error serialization.
+- Demo banking data is available only after browser services start.
+- Authentication is not implemented. Adding it requires clearing caches and handling recovery records when the customer identity changes.
+
+## Implementation and verification
+
+- [Dependency rules](../../eslint.config.js) enforce layer boundaries.
+- [Banking plugin](../../src/plugins/01.banking.ts), [Vue Query plugin](../../src/plugins/02.vue-query.ts) and [error codec](../../src/plugins/api-errors.ts) implement request setup and hydration.
+- [Transaction route composable](../../src/features/transactions/composables/useTransactionRoute.ts) owns applied URL state.
+- [Transfer mutation](../../src/features/transfers/composables/useTransfer.ts) refreshes cached banking data.
+- [SSR checks](../../scripts/verify-ssr.mjs) cover rendering, hydration and request isolation; [verification notes](../verification.md) record broader checks.
+
+Related decisions: [HTTP and demo persistence](002-mock-http-boundary-and-demo-persistence.md), [money and transfer consistency](003-money-and-transfer-consistency.md).
