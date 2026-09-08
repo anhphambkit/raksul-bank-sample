@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { createBankingApi } from '../../data/api/bankingApi'
-import { createBankingHandlers } from '../../data/mock/handlers/banking'
+import { createBankingHandlers, mockLatency } from '../../data/mock/handlers/banking'
 import { createIndexedDbBankingRepository } from '../../data/repositories/indexedDbBankingRepository'
 import { createSeedState } from '../../data/seed/createSeedState'
 import { RepositoryError, type BankingRepository } from '../../use-cases/ports/BankingRepository'
@@ -21,6 +21,19 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 describe('typed mock banking API', () => {
+  it.each([
+    ['FETCH', 1_000, 1_800],
+    ['LOOKUP', 1_200, 2_200],
+    ['UPDATE', 1_800, 2_600],
+    ['TRANSFER', 2_200, 3_000],
+  ] as const)(
+    'keeps %s demo latency within its configured range',
+    (operation, minimum, maximum) => {
+      expect(mockLatency(operation, () => 0)).toBe(minimum)
+      expect(mockLatency(operation, () => 0.999_999)).toBe(maximum)
+    },
+  )
+
   it('returns the customer, owned accounts including frozen, and beneficiaries', async () => {
     expect((await api.customer()).id).toBe('customer-taylor')
     const accounts = await api.accounts()

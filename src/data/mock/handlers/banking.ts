@@ -9,16 +9,41 @@ import {
   TransferError,
 } from '../../../use-cases/transfers/executeTransfer'
 import { transferRequestSchema } from '../../api/transferRequestSchema'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { createBankingQueries, QueryError } from '../../../use-cases/queries'
 import { RepositoryError, type BankingRepository } from '../../../use-cases/ports/BankingRepository'
 import { transactionQuerySchema } from '../../api/transactionQuerySchema'
+
+type MockOperation = 'FETCH' | 'LOOKUP' | 'UPDATE' | 'TRANSFER'
+
+const latencyByOperation: Record<MockOperation, readonly [minimum: number, maximum: number]> = {
+  FETCH: [1_000, 1_800],
+  LOOKUP: [1_200, 2_200],
+  UPDATE: [1_800, 2_600],
+  TRANSFER: [2_200, 3_000],
+}
+
+export function mockLatency(operation: MockOperation, random = Math.random) {
+  const [minimum, maximum] = latencyByOperation[operation]
+  return Math.floor(random() * (maximum - minimum + 1)) + minimum
+}
+
+async function waitForMockResponse(operation: MockOperation) {
+  // Keep automated tests deterministic and fast; browser demos retain realistic latency.
+  if (import.meta.env.MODE !== 'test') await delay(mockLatency(operation))
+}
 
 function failure(status: number, code: string, message: string) {
   return HttpResponse.json({ error: { code, message } }, { status })
 }
 
-async function respond(action: () => Promise<unknown>) {
+async function reject(operation: MockOperation, status: number, code: string, message: string) {
+  await waitForMockResponse(operation)
+  return failure(status, code, message)
+}
+
+async function respond(action: () => Promise<unknown>, operation: MockOperation = 'FETCH') {
+  await waitForMockResponse(operation)
   try {
     const result = await action()
     return result === undefined
@@ -57,23 +82,27 @@ export function createBankingHandlers(repository: BankingRepository) {
   }
   return [
     http.get('*/api/recipient-accounts/:accountNumber', ({ params }) =>
-      respond(() => lookupRecipient(repository, String(params.accountNumber))),
+      respond(() => lookupRecipient(repository, String(params.accountNumber)), 'LOOKUP'),
     ),
     http.post('*/api/beneficiaries', async ({ request }) => {
       const parsed = beneficiaryRequestSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
-        return failure(
+        return reject(
+          'UPDATE',
           400,
           'INVALID_RECIPIENT',
           'Check the recipient name, bank and account number.',
         )
-      return respond(() => createBeneficiary(repository, parsed.data))
+      return respond(() => createBeneficiary(repository, parsed.data), 'UPDATE')
     }),
     http.post('*/api/transfers', async ({ request }) => {
       const parsed = transferRequestSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
-        return failure(400, 'INVALID_REQUEST', 'Check the transfer details and amount.')
-      return respond(async () => receipt(await executeTransfer(repository, parsed.data)))
+        return reject('TRANSFER', 400, 'INVALID_REQUEST', 'Check the transfer details and amount.')
+      return respond(
+        async () => receipt(await executeTransfer(repository, parsed.data)),
+        'TRANSFER',
+      )
     }),
     http.get('*/api/transfers/:transferId', ({ params }) =>
       respond(async () => receipt(await getTransfer(repository, String(params.transferId)))),
@@ -84,12 +113,13 @@ export function createBankingHandlers(repository: BankingRepository) {
       respond(() => queries.account(String(params.accountId))),
     ),
     http.get('*/api/beneficiaries', () => respond(queries.beneficiaries)),
-    http.post('*/api/demo/reset', () => respond(queries.reset)),
-    http.get('*/api/transactions', ({ request }) => {
+    http.post('*/api/demo/reset', () => respond(queries.reset, 'UPDATE')),
+    http.get('*/api/transactions', async ({ request }) => {
       const params = new URL(request.url).searchParams
       const parsed = transactionQuerySchema.safeParse(Object.fromEntries(params))
       if ([...params.keys()].some((key) => params.getAll(key).length > 1) || !parsed.success) {
-        return failure(
+        return reject(
+          'FETCH',
           400,
           'INVALID_QUERY',
           'Check the transaction filters, date range and pagination.',
