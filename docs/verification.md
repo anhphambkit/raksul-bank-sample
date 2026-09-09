@@ -60,7 +60,7 @@ The implementation uses 100 seed transactions and saved/new recipients; an inter
 
 ### Scope boundaries
 
-- Authentication and spending insights are not included.
+- Authentication is not included. Spending insights were added on 2026-09-09; see the [feature scope](../README.md#spending-insights).
 - Browser coverage uses Chromium with responsive viewports.
 - Cross-device synchronization requires a shared backend and is not included.
 - Production backend capabilities such as authentication, FX, fees, settlement and payment processing are outside the demo scope.

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test'
 const stories = [
+  'spendingdashboard--populated',
+  'spendingdashboard--empty',
+  'spendingdashboard--no-prior-spending',
+  'spendingdashboard--large-amounts',
+  'spendingdashboard--customized',
   'accountcard--active',
   'accountcard--frozen',
   'moneydisplay--default',
@@ -30,7 +35,7 @@ for (const theme of ['light', 'dark']) {
   })
 }
 
-test('seven component groups are indexed and Controls update the rendered amount', async ({
+test('eight component groups are indexed and Controls update the rendered amount', async ({
   page,
   request,
 }) => {
@@ -41,7 +46,7 @@ test('seven component groups are indexed and Controls update the rendered amount
         .filter((entry) => entry.type === 'story')
         .map((entry) => entry.title),
     ).size,
-  ).toBe(7)
+  ).toBe(8)
   await page.goto('/?path=/story/banking-moneydisplay--default')
   await page.getByRole('tab', { name: /Controls/ }).click()
   await page.locator('#control-amountMinor').fill('250075')
@@ -75,4 +80,25 @@ test('legacy Uncertain Outcome link redirects and pending Control updates the re
   await expect(pending).toBeChecked()
   await expect(preview.getByRole('button', { name: 'Retry same transfer' })).toBeDisabled()
   await expect(preview.getByRole('status')).toContainText('Confirming your transfer')
+})
+
+test('spending dashboard keeps large exact amounts and charts within mobile width', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 1000 })
+  await page.goto(
+    '/iframe.html?id=banking-spendingdashboard--large-amounts&viewMode=story&globals=theme:dark',
+  )
+  await expect(page.getByRole('region', { name: 'Spending summary' })).toContainText(
+    '$270,215,977,642,229.73',
+  )
+  expect(
+    await page.evaluate(
+      () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth,
+    ),
+  ).toBe(true)
+  await expect(
+    page.getByRole('list', { name: 'Monthly spending amounts' }).getByRole('listitem'),
+  ).toHaveCount(6)
+  await page.screenshot({ path: '/private/tmp/bank-insights-large-mobile.png', fullPage: true })
 })

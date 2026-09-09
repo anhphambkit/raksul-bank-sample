@@ -96,4 +96,8 @@ Add a separate Playwright configuration/environment for the real test backend wi
 
 Build the app before `npm run test:visual` and build Storybook before `npm run test:storybook`. Both use Chromium; see [enhancement commands and baseline rules](enhancements.md). Cross-device synchronization is deferred and is not claimed by any test.
 
-Storybook stories use seven component-specific CSF files and typed args. The third Storybook browser test verifies the component index and edits amountMinor via the manager Controls panel, asserting the new money value in the preview iframe.
+Storybook stories use eight component-specific CSF files and typed args. The third Storybook browser test verifies the component index and edits amountMinor via the manager Controls panel, asserting the new money value in the preview iframe.
+
+## Spending insights coverage
+
+Domain and loader suites verify exact totals, six-month UTC windows, exclusions, pagination completeness/limits, account scope and abort handling. UI tests cover component customization, comparisons, URL state, unchanged-URL reset and error recovery. The Spending Insights browser suite exercises responsive filters, reload/Back, invalid-link recovery and read-only backend SSR hydration through the existing transaction endpoint. Visual tests include the new page in both themes.

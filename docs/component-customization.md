@@ -269,3 +269,11 @@ No reset runs merely by opening the dialog. The component stays hidden outside d
   <template #default="{ masked }">Account {{ masked }}</template>
 </MaskedAccountNumber>
 ```
+
+## SpendingDashboard
+
+Import from `src/features/insights/components/SpendingDashboard.vue`. The required `insight` prop uses `SpendingInsight` from `src/domain/spending/spendingInsight.ts`; monetary totals are nonnegative decimal strings in minor units, formatted exactly through `MoneyDisplay`. Optional `ui` overrides merge classes for `root`, `summary`, `trend` and `breakdown`; ordinary root attributes are forwarded.
+
+The `summary`, `trend` and `breakdown` slots each receive `{ insight }` with working default content. Trend and breakdown retain their section headings when overridden. Custom summary content should provide an appropriate heading and exact amount/count. Custom charts should retain accessible text values; the default trend pairs decorative bars with a visible monthly amounts list. The accounting-scope explanation remains outside the slots.
+
+This component only renders supplied data. Query loading/error/retry, URL filters and API ownership checks belong to the page/composables/loader. It does not fetch, mutate banking state or infer categories.

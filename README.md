@@ -257,3 +257,11 @@ A production banking system would require server-side authentication/authorizati
 - [001 — Feature-oriented Vue architecture and state management](docs/adr/001-feature-oriented-vue-architecture.md)
 - [002 — Mock HTTP boundary and demo persistence](docs/adr/002-mock-http-boundary-and-demo-persistence.md)
 - [003 — Money representation and transfer consistency](docs/adr/003-money-and-transfer-consistency.md)
+
+## Spending insights
+
+Open **Spending insights** in the navigation to see a monthly total, previous-month comparison, six-month trend and Card/Cash/Fees breakdown. Filter by account and month; links, reload and Back/Forward retain the applied filters. The default is the last completed UTC month (the fixed demo history covers March–August 2026).
+
+Only completed USD card payments, cash withdrawals and fees count. Transfers, credits/refunds, pending and failed transactions are excluded, so totals describe gross recorded spending rather than all money leaving the account. Cash withdrawals are counted when withdrawn; there is no merchant-category inference or budget feature.
+
+Data comes from all pages of the existing transaction API, with exact minor-unit aggregation and response validation. The loader fails rather than displaying partial results if a page fails, pagination changes or the six-month history exceeds 10,000 transactions. A real backend must enforce account authorization; its offset pagination is not an atomic snapshot. See [backend integration details](docs/nuxt-migration.md).
